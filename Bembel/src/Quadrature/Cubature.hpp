@@ -11,7 +11,8 @@
 namespace Bembel {
 
 // A typedef for convenience
-typedef Quadrature<2> Cubature;
+template<typename ptScalar>
+using Cubature = Quadrature<2, ptScalar>;
 
 }
 #endif

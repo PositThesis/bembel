@@ -12,8 +12,8 @@
 namespace Bembel{
 
 
-template <unsigned int Order>
-using GaussLegendre = QuadratureVector<GaussLegendreRule, Order>;
+template <unsigned int Order, typename ptScalar>
+using GaussLegendre = QuadratureVector<GaussLegendreRule, Order, ptScalar>;
 
 
 }

@@ -13,14 +13,14 @@ namespace Bembel {
  *  \brief The superspace manages local polynomial bases on each element of the
  * mesh and provides an itnerface to evaluate them.
  */
-template <typename Derived>
+template <typename Derived, typename ptScalar>
 struct SuperSpace {
   typedef typename LinearOperatorTraits<Derived>::Scalar Scalar;
   //////////////////////////////////////////////////////////////////////////////
   //    constructors
   //////////////////////////////////////////////////////////////////////////////
   SuperSpace(){};
-  SuperSpace(Geometry& geom, int M, int P) { init_SuperSpace(geom, M, P); }
+  SuperSpace(Geometry<ptScalar>& geom, int M, int P) { init_SuperSpace(geom, M, P); }
   SuperSpace(const SuperSpace& other) {
     mesh_ = other.mesh_;
     phi = other.phi;
@@ -74,26 +74,26 @@ struct SuperSpace {
   int get_refinement_level() const { return mesh_->get_max_level(); }
   int get_number_of_elements() const { return mesh_->get_number_of_elements(); }
   int get_number_of_patches() const { return mesh_->get_geometry().size(); }
-  const PatchVector& get_geometry() const { return mesh_->get_geometry(); }
-  const ClusterTree& get_mesh() const { return *mesh_; };
+  const PatchVector<ptScalar>& get_geometry() const { return mesh_->get_geometry(); }
+  const ClusterTree<ptScalar>& get_mesh() const { return *mesh_; };
   //////////////////////////////////////////////////////////////////////////////
   //    init_SuperSpace
   //////////////////////////////////////////////////////////////////////////////
-  void init_SuperSpace(const Geometry& geom, int M, int P) {
+  void init_SuperSpace(const Geometry<ptScalar>& geom, int M, int P) {
     polynomial_degree = P;
     polynomial_degree_plus_one_squared =
         (polynomial_degree + 1) * (polynomial_degree + 1);
-    phi = (Basis::BasisHandler<Scalar>::funPtrPhi(P));
-    phiDx = (Basis::BasisHandler<Scalar>::funPtrPhiDx(P));
-    phiPhi = (Basis::BasisHandler<Scalar>::funPtrPhiPhi(P));
-    phiPhiDx = (Basis::BasisHandler<Scalar>::funPtrPhiPhiDx(P));
-    phiPhiDy = (Basis::BasisHandler<Scalar>::funPtrPhiPhiDy(P));
-    phiTimesPhi = (Basis::BasisHandler<Scalar>::funPtrPhiTimesPhi(P));
+    phi = (Basis::BasisHandler<Scalar, ptScalar>::funPtrPhi(P));
+    phiDx = (Basis::BasisHandler<Scalar, ptScalar>::funPtrPhiDx(P));
+    phiPhi = (Basis::BasisHandler<Scalar, ptScalar>::funPtrPhiPhi(P));
+    phiPhiDx = (Basis::BasisHandler<Scalar, ptScalar>::funPtrPhiPhiDx(P));
+    phiPhiDy = (Basis::BasisHandler<Scalar, ptScalar>::funPtrPhiPhiDy(P));
+    phiTimesPhi = (Basis::BasisHandler<Scalar, ptScalar>::funPtrPhiTimesPhi(P));
     // vPhiScalVPhi = (Basis::BasisHandler<typename
     // LinearOperatorTraits<Derived>::Scalar>::funPtrVPhiScalVPhi(P));
     divPhiTimesDivPhi =
-        (Basis::BasisHandler<Scalar>::funPtrDivPhiTimesDivPhi(P));
-    mesh_ = std::make_shared<ClusterTree>();
+        (Basis::BasisHandler<Scalar, ptScalar>::funPtrDivPhiTimesDivPhi(P));
+    mesh_ = std::make_shared<ClusterTree<ptScalar>>();
     mesh_->init_ClusterTree(geom, M);
     mesh_->checkOrientation();
     return;
@@ -101,9 +101,9 @@ struct SuperSpace {
   //////////////////////////////////////////////////////////////////////////////
   //    map2surface
   //////////////////////////////////////////////////////////////////////////////
-  void map2surface(const ElementTreeNode& e, const Eigen::Vector2d& xi,
-                   double w, SurfacePoint* surf_pt) const {
-    Eigen::Vector2d st = e.llc_ + e.get_h() * xi;
+  void map2surface(const ElementTreeNode<ptScalar>& e, const Eigen::Matrix<ptScalar, 2, 1>& xi,
+                   ptScalar w, SurfacePoint<ptScalar>* surf_pt) const {
+    Eigen::Matrix<ptScalar, 2, 1> st = e.llc_ + e.get_h() * xi;
     mesh_->get_geometry()[e.patch_].updateSurfacePoint(surf_pt, st, w, xi);
     return;
   }
@@ -117,7 +117,7 @@ struct SuperSpace {
   void addScaledBasisInteraction(
       Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>* intval,
       typename LinearOperatorTraits<Derived>::Scalar w,
-      const Eigen::Vector2d& s, const Eigen::Vector2d& t) const {
+      const Eigen::Matrix<ptScalar, 2, 1>& s, const Eigen::Matrix<ptScalar, 2, 1>& t) const {
     phiTimesPhi(intval, w, s, t);
   }
   /**
@@ -125,11 +125,11 @@ struct SuperSpace {
    * coordinates s,t.
    */
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> basisInteraction(
-      const Eigen::Vector2d& s, const Eigen::Vector2d& t) const {
+      const Eigen::Matrix<ptScalar, 2, 1>& s, const Eigen::Matrix<ptScalar, 2, 1>& t) const {
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> intval(
         polynomial_degree_plus_one_squared, polynomial_degree_plus_one_squared);
     intval.setZero();
-    phiTimesPhi(&intval, 1., s, t);
+    phiTimesPhi(&intval, ptScalar(1.), s, t);
     return intval;
   }
 
@@ -139,17 +139,17 @@ struct SuperSpace {
    */
   void addScaledSurfaceCurlInteraction(
       Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>* intval, Scalar w,
-      const SurfacePoint& p1, const SurfacePoint& p2) const {
+      const SurfacePoint<ptScalar>& p1, const SurfacePoint<ptScalar>& p2) const {
     // surface measures
-    double kappa1 = p1.segment<3>(6).cross(p1.segment<3>(9)).norm();
-    double kappa2 = p2.segment<3>(6).cross(p2.segment<3>(9)).norm();
+    ptScalar kappa1 = (p1.segment<3>(6)).cross(p1.segment<3>(9)).norm();
+    ptScalar kappa2 = (p2.segment<3>(6)).cross(p2.segment<3>(9)).norm();
     // compute basis functions's surface curl. Each column of s_curl is a basis
     // function's surface curl at point s.
-    Eigen::MatrixXd s_curl(3, polynomial_degree_plus_one_squared);
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> s_curl(3, polynomial_degree_plus_one_squared);
     s_curl = (1.0 / kappa1) *
              (-p1.segment<3>(6) * basisDy(p1.segment<2>(0)).transpose() +
               p1.segment<3>(9) * basisDx(p1.segment<2>(0)).transpose());
-    Eigen::MatrixXd t_curl(3, polynomial_degree_plus_one_squared);
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> t_curl(3, polynomial_degree_plus_one_squared);
     t_curl = (1.0 / kappa2) *
              (-p2.segment<3>(6) * basisDy(p2.segment<2>(0)).transpose() +
               p2.segment<3>(9) * basisDx(p2.segment<2>(0)).transpose());
@@ -166,7 +166,7 @@ struct SuperSpace {
    */
   void addScaledSurfaceGradientInteraction(
       Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>* intval, Scalar w,
-      const SurfacePoint& p1, const SurfacePoint& p2) const {
+      const SurfacePoint<ptScalar>& p1, const SurfacePoint<ptScalar>& p2) const {
     // inner product of surface gradients of any two basis functions equals to
     // inner product of surface curls of any two basis functions
     addScaledSurfaceCurlInteraction(intval, w, p1, p2);
@@ -179,9 +179,9 @@ struct SuperSpace {
    */
   void addScaledVectorBasisInteraction(
       Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>* intval, Scalar w,
-      const Eigen::Vector2d& s, const Eigen::Vector2d& t,
-      const Eigen::Vector3d x_f_dx, const Eigen::Vector3d x_f_dy,
-      const Eigen::Vector3d y_f_dx, const Eigen::Vector3d y_f_dy) const {
+      const Eigen::Matrix<ptScalar, 2, 1>& s, const Eigen::Matrix<ptScalar, 2, 1>& t,
+      const Eigen::Matrix<ptScalar, 3, 1> x_f_dx, const Eigen::Matrix<ptScalar, 3, 1> x_f_dy,
+      const Eigen::Matrix<ptScalar, 3, 1> y_f_dx, const Eigen::Matrix<ptScalar, 3, 1> y_f_dy) const {
     auto basis_interaction = basisInteraction(s, t);
     intval->block(0, 0, polynomial_degree_plus_one_squared,
                   polynomial_degree_plus_one_squared) +=
@@ -205,14 +205,14 @@ struct SuperSpace {
    * on the surface points with reference coordinates s,t.
    */
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> vectorBasisInteraction(
-      const Eigen::Vector2d& s, const Eigen::Vector2d& t,
-      const Eigen::Vector3d x_f_dx, const Eigen::Vector3d x_f_dy,
-      const Eigen::Vector3d y_f_dx, const Eigen::Vector3d y_f_dy) const {
+      const Eigen::Matrix<ptScalar, 2, 1>& s, const Eigen::Matrix<ptScalar, 2, 1>& t,
+      const Eigen::Matrix<ptScalar, 3, 1> x_f_dx, const Eigen::Matrix<ptScalar, 3, 1> x_f_dy,
+      const Eigen::Matrix<ptScalar, 3, 1> y_f_dx, const Eigen::Matrix<ptScalar, 3, 1> y_f_dy) const {
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> intval(
         2 * polynomial_degree_plus_one_squared,
         2 * polynomial_degree_plus_one_squared);
     intval.setZero();
-    addScaledVectorBasisInteraction(&intval, 1., s, t, x_f_dx, x_f_dy, y_f_dx,
+    addScaledVectorBasisInteraction(&intval, ptScalar(1.), s, t, x_f_dx, x_f_dy, y_f_dx,
                                     y_f_dy);
     return intval;
   }
@@ -222,7 +222,7 @@ struct SuperSpace {
    */
   void addScaledVectorBasisDivergenceInteraction(
       Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>* intval, Scalar w,
-      const Eigen::Vector2d& s, const Eigen::Vector2d& t) const {
+      const Eigen::Matrix<ptScalar, 2, 1>& s, const Eigen::Matrix<ptScalar, 2, 1>& t) const {
     divPhiTimesDivPhi(intval, w, s, t);
   }
   /**
@@ -230,13 +230,13 @@ struct SuperSpace {
    * unit square at coordinates s,t.
    */
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
-  vectorBasisDivergenceInteraction(const Eigen::Vector2d& s,
-                                   const Eigen::Vector2d& t) const {
+  vectorBasisDivergenceInteraction(const Eigen::Matrix<ptScalar, 2, 1>& s,
+                                   const Eigen::Matrix<ptScalar, 2, 1>& t) const {
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> intval(
         2 * polynomial_degree_plus_one_squared,
         2 * polynomial_degree_plus_one_squared);
     intval.setZero();
-    divPhiTimesDivPhi(&intval, 1., s, t);
+    divPhiTimesDivPhi(&intval, ptScalar(1.), s, t);
     return intval;
   }
   /**
@@ -244,18 +244,18 @@ struct SuperSpace {
    * scale by w and add to intval.
    */
   void addScaledBasis(Eigen::Matrix<Scalar, Eigen::Dynamic, 1>* intval,
-                      Scalar w, const Eigen::Vector2d& s) const {
+                      Scalar w, const Eigen::Matrix<ptScalar, 2, 1>& s) const {
     phiPhi(intval, w, s);
   }
   /**
    * \brief Evaluate local shape functions on the unit square at coordinate s.
    */
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> basis(
-      const Eigen::Vector2d& s) const {
+      const Eigen::Matrix<ptScalar, 2, 1>& s) const {
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> intval(
         polynomial_degree_plus_one_squared);
     intval.setZero();
-    phiPhi(&intval, 1., s);
+    phiPhi(&intval, ptScalar(1.), s);
     return intval;
   }
   /**
@@ -264,7 +264,7 @@ struct SuperSpace {
    */
   void addScaledBasisDx(Eigen::Matrix<Scalar, Eigen::Dynamic, 1>* intval,
                         typename LinearOperatorTraits<Derived>::Scalar w,
-                        const Eigen::Vector2d& s) const {
+                        const Eigen::Matrix<ptScalar, 2, 1>& s) const {
     phiPhiDx(intval, w, s);
   }
   /**
@@ -272,11 +272,11 @@ struct SuperSpace {
    * unit square at coordinate s.
    */
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> basisDx(
-      const Eigen::Vector2d& s) const {
+      const Eigen::Matrix<ptScalar, 2, 1>& s) const {
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> intval(
         polynomial_degree_plus_one_squared);
     intval.setZero();
-    phiPhiDx(&intval, 1., s);
+    phiPhiDx(&intval, ptScalar(1.), s);
     return intval;
   }
   /**
@@ -285,7 +285,7 @@ struct SuperSpace {
    */
   void addScaledBasisDy(Eigen::Matrix<Scalar, Eigen::Dynamic, 1>* intval,
                         typename LinearOperatorTraits<Derived>::Scalar w,
-                        const Eigen::Vector2d& s) const {
+                        const Eigen::Matrix<ptScalar, 2, 1>& s) const {
     phiPhiDy(intval, w, s);
   }
   /**
@@ -293,11 +293,11 @@ struct SuperSpace {
    * unit square at coordinate s.
    */
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> basisDy(
-      const Eigen::Vector2d& s) const {
+      const Eigen::Matrix<ptScalar, 2, 1>& s) const {
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> intval(
         polynomial_degree_plus_one_squared);
     intval.setZero();
-    phiPhiDy(&intval, 1., s);
+    phiPhiDy(&intval, ptScalar(1.), s);
     return intval;
   }
   /**
@@ -305,16 +305,16 @@ struct SuperSpace {
    * scale by w and add to intval.
    */
   void addScaledBasis1D(Eigen::Matrix<Scalar, Eigen::Dynamic, 1>* intval,
-                        Scalar w, double s) const {
+                        Scalar w, ptScalar s) const {
     phi(intval, w, s);
   }
   /**
    * \brief Evaluate local shape functions on the unit interval at coordinate s.
    */
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> basis1D(double s) const {
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> basis1D(ptScalar s) const {
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> intval(polynomial_degree + 1);
     intval.setZero();
-    phi(&intval, 1., s);
+    phi(&intval, ptScalar(1.), s);
     return intval;
   }
   /**
@@ -322,33 +322,33 @@ struct SuperSpace {
    * at coordinate s, scale by w and add to intval.
    */
   void addScaledBasis1DDx(Eigen::Matrix<Scalar, Eigen::Dynamic, 1>* intval,
-                          Scalar w, double s) const {
+                          Scalar w, ptScalar s) const {
     phiDx(intval, w, s);
   }
   /**
    * \brief Evaluate derivatives of local shape functions on the unit interval
    * at coordinate s.
    */
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> basis1DDx(double s) const {
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> basis1DDx(ptScalar s) const {
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> intval(polynomial_degree + 1);
     intval.setZero();
-    phiDx(&intval, 1., s);
+    phiDx(&intval, ptScalar(1.), s);
     return intval;
   }
   //////////////////////////////////////////////////////////////////////////////
   //    member variables
   //////////////////////////////////////////////////////////////////////////////
  private:
-  std::shared_ptr<ClusterTree> mesh_;
-  Basis::funptr_phi<Scalar> phi;
-  Basis::funptr_phidx<Scalar> phiDx;
-  Basis::funptr_phiphi<Scalar> phiPhi;
-  Basis::funptr_phiphidx<Scalar> phiPhiDx;
-  Basis::funptr_phiphidy<Scalar> phiPhiDy;
-  Basis::funptr_phitimesphi<Scalar> phiTimesPhi;
+  std::shared_ptr<ClusterTree<ptScalar>> mesh_;
+  Basis::funptr_phi<Scalar, ptScalar> phi;
+  Basis::funptr_phidx<Scalar, ptScalar> phiDx;
+  Basis::funptr_phiphi<Scalar, ptScalar> phiPhi;
+  Basis::funptr_phiphidx<Scalar, ptScalar> phiPhiDx;
+  Basis::funptr_phiphidy<Scalar, ptScalar> phiPhiDy;
+  Basis::funptr_phitimesphi<Scalar, ptScalar> phiTimesPhi;
   // Basis::funptr_vphiscalvphi<typename LinearOperatorTraits<Derived>::Scalar>
   // vPhiScalVPhi;
-  Basis::funptr_divphitimesdivphi<Scalar> divPhiTimesDivPhi;
+  Basis::funptr_divphitimesdivphi<Scalar, ptScalar> divPhiTimesDivPhi;
   int polynomial_degree;
   int polynomial_degree_plus_one_squared;
 };  // namespace Bembel

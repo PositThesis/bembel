@@ -13,7 +13,7 @@
 
 int main() {
   Bembel::IO::Stopwatch sw;
-  Bembel::Geometry geometry("sphere.dat");
+  Bembel::Geometry<double> geometry("sphere.dat");
   std::cout << std::string(60, '-') << std::endl;
   std::cout << "The geometry has " << geometry.get_number_of_patches()
             << " patches." << std::endl;
@@ -21,7 +21,7 @@ int main() {
   std::cout << "    cluster tree setup\n";
   for (int refinement_level = 0; refinement_level < 11; ++refinement_level) {
     sw.tic();
-    Bembel::ClusterTree mesh(geometry, refinement_level);
+    Bembel::ClusterTree<double> mesh(geometry, refinement_level);
     std::cout << std::setw(2) << refinement_level
               << ") setup time: " << sw.toc() << std::endl;
   }
@@ -30,10 +30,10 @@ int main() {
   for (int refinement_level = 0; refinement_level < 5; ++refinement_level) {
     sw.tic();
     const int polynomial_degree = 3;
-    Bembel::AnsatzSpace<Bembel::LaplaceSingleLayerOperator> ansatz_space(
+    Bembel::AnsatzSpace<Bembel::LaplaceSingleLayerOperator<double>, double> ansatz_space(
         geometry, refinement_level, polynomial_degree);
-    Bembel::LaplaceSingleLayerOperator S;
-    Bembel::BlockClusterTree<double> bct0(S, ansatz_space);
+    Bembel::LaplaceSingleLayerOperator<double> S;
+    Bembel::BlockClusterTree<double, double> bct0(S, ansatz_space);
     std::cout << std::setw(2) << refinement_level
               << ") setup time: " << sw.toc() << std::endl;
   }
@@ -41,17 +41,17 @@ int main() {
   {
     const int polynomial_degree = 3;
     const int refinement_level = 5;
-    Bembel::AnsatzSpace<Bembel::LaplaceSingleLayerOperator> ansatz_space(
+    Bembel::AnsatzSpace<Bembel::LaplaceSingleLayerOperator<double>, double> ansatz_space(
         geometry, refinement_level, polynomial_degree);
-    Bembel::LaplaceSingleLayerOperator S;
-    Bembel::BlockClusterTree<double> bct0(S, ansatz_space);
+    Bembel::LaplaceSingleLayerOperator<double> S;
+    Bembel::BlockClusterTree<double, double> bct0(S, ansatz_space);
     sw.tic();
-    Bembel::BlockClusterTree<double> bct =
-        std::move(Bembel::BlockClusterTree<double>(S, ansatz_space));
+    Bembel::BlockClusterTree<double, double> bct =
+        std::move(Bembel::BlockClusterTree<double, double>(S, ansatz_space));
     std::cout << "move assignment " << sw.toc() << std::endl;
     sw.tic();
 
-    Bembel::BlockClusterTree<double> bct2 = bct0;
+    Bembel::BlockClusterTree<double, double> bct2 = bct0;
     std::cout << "copy assignment " << sw.toc() << std::endl;
 
     auto i = 0;

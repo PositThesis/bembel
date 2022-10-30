@@ -21,24 +21,24 @@ namespace DuffyTrick {
  *           Information that map2element has to provide:
  *           xi; w; Chi(xi); dChidx(xi); dChidy(xi);
  **/
-template <typename Derived, class T>
-void integrate2(const LinearOperatorBase<Derived> &LinOp, const T &super_space,
-                const ElementTreeNode &e1, int rot1, const ElementTreeNode &e2,
-                int rot2, const Eigen::MatrixXd &ffield_qnodes,
-                const Cubature &Q,
+template <typename Derived, class T, typename ptScalar>
+void integrate2(const LinearOperatorBase<Derived, ptScalar> &LinOp, const T &super_space,
+                const ElementTreeNode<ptScalar> &e1, int rot1, const ElementTreeNode<ptScalar> &e2,
+                int rot2, const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &ffield_qnodes,
+                const Cubature<ptScalar> &Q,
                 Eigen::Matrix<typename LinearOperatorTraits<Derived>::Scalar,
                               Eigen::Dynamic, Eigen::Dynamic> *intval) {
   intval->setZero();
-  double h = e1.get_h();
-  double t1 = 0;
-  double t2 = 0;
-  double t3 = 0;
-  double t4 = 0;
-  Eigen::Matrix<double, 2, 8> pts;
-  SurfacePoint qp1, qp2;
+  ptScalar h = e1.get_h();
+  ptScalar t1 = 0;
+  ptScalar t2 = 0;
+  ptScalar t3 = 0;
+  ptScalar t4 = 0;
+  Eigen::Matrix<ptScalar, 2, 8> pts;
+  SurfacePoint<ptScalar> qp1, qp2;
   // llc of the element wrt [0,1]^2
   for (auto i = 0; i < Q.w_.size(); ++i) {
-    double w = h * h * Q.w_(i) * Q.xi_(0, i) * (1 - Q.xi_(0, i)) *
+    ptScalar w = h * h * Q.w_(i) * Q.xi_(0, i) * (1 - Q.xi_(0, i)) *
                (1 - Q.xi_(0, i) * Q.xi_(1, i));
     for (auto j = 0; j < Q.w_.size(); ++j) {
       t1 = Q.xi_(0, j) * (1 - Q.xi_(0, i));

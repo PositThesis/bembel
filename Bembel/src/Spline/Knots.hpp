@@ -15,18 +15,22 @@ namespace Spl {
  *  \brief Here, routines for the creation and processing of knot vectors are
  *         defined.
  */
-inline std::vector<double> MakeBezierKnotVector(
-    int polynomial_degree) noexcept {
-  std::vector<double> out;
+template <typename ptScalar>
+inline std::vector<ptScalar>
+MakeBezierKnotVector(int polynomial_degree) noexcept {
+  std::vector<ptScalar> out;
   out.reserve(polynomial_degree * 2);
-  for (int i = 0; i < polynomial_degree; i++) out.push_back(0);
-  for (int i = 0; i < polynomial_degree; i++) out.push_back(1);
+  for (int i = 0; i < polynomial_degree; i++)
+    out.push_back(0);
+  for (int i = 0; i < polynomial_degree; i++)
+    out.push_back(1);
   return out;
 }
 
-inline int GetPolynomialDegreeFromKnotVector(
-    const std::vector<double> &knot_vector) {
-  constexpr double tol = .0000001;
+template <typename ptScalar>
+inline int
+GetPolynomialDegreeFromKnotVector(const std::vector<ptScalar> &knot_vector) {
+  constexpr ptScalar tol = .0000001;
   int i = 0;
   const int sz = knot_vector.size();
   while (++i < sz) {
@@ -37,49 +41,59 @@ inline int GetPolynomialDegreeFromKnotVector(
   return 0;
 }
 
-inline std::vector<double> MakeUniformKnotVector(int polynomial_degree,
-                                                 int interior,
-                                                 int knotrepetition) noexcept {
-  std::vector<double> out;
-  const double h = 1. / (interior + 1);
+template <typename ptScalar>
+inline std::vector<ptScalar>
+MakeUniformKnotVector(int polynomial_degree, int interior,
+                      int knotrepetition) noexcept {
+  std::vector<ptScalar> out;
+  const ptScalar h = 1. / (interior + 1);
   out.reserve(polynomial_degree * 2);
-  for (int i = 0; i < polynomial_degree; i++) out.push_back(0);
+  for (int i = 0; i < polynomial_degree; i++)
+    out.push_back(0);
   for (int i = 1; i < interior + 1; i++)
-    for (int k = 0; k < knotrepetition; k++) out.push_back(i * h);
-  for (int i = 0; i < polynomial_degree; i++) out.push_back(1);
+    for (int k = 0; k < knotrepetition; k++)
+      out.push_back(i * h);
+  for (int i = 0; i < polynomial_degree; i++)
+    out.push_back(1);
   return out;
 }
 
-inline std::vector<double> MakeUniformKnotVector(int p, int lvl) {
-  return MakeUniformKnotVector(p, lvl, 1);
+template <typename ptScalar>
+inline std::vector<ptScalar> MakeUniformKnotVector(int p, int lvl) {
+  return MakeUniformKnotVector<ptScalar>(p, lvl, 1);
 }
 
 // Chunk knots eats knotvectors and returns knotvectors in which each knot is
 // unique, up to tolerance tol.
-inline std::vector<double> ExtractUniqueKnotVector(
-    const std::vector<double> &in) {
-  constexpr double tol = Bembel::Constants::generic_tolerance;
-  std::vector<double> out;
+template <typename ptScalar>
+inline std::vector<ptScalar>
+ExtractUniqueKnotVector(const std::vector<ptScalar> &in) {
+  ptScalar tol = Bembel::Constants::generic_tolerance<ptScalar>;
+  std::vector<ptScalar> out;
   const int size = in.size();
   // std::cout<< "chunk " << in[0]  <<"\n";
   out.push_back(in[0]);
   for (int i = 1; i < size; i++) {
-    if (in[i] > (in[i - 1] + tol)) out.push_back(in[i]);
+    if (in[i] > (in[i - 1] + tol))
+      out.push_back(in[i]);
   }
   return out;
 }
 
 // Up tp tol, fins knot element index for a given x.
-inline int FindLocationInKnotVector(const double &x,
-                                    const std::vector<double> &v) {
-  constexpr double tol = Bembel::Constants::generic_tolerance;
+template <typename ptScalar>
+inline int FindLocationInKnotVector(const ptScalar &x,
+                                    const std::vector<ptScalar> &v) {
+  ptScalar tol = Bembel::Constants::generic_tolerance<ptScalar>;
   int size = v.size();
-  if (((x - tol) < 0.) && ((x + tol) > 0.)) return 0;
+  if (((x - tol) < 0.) && ((x + tol) > 0.))
+    return 0;
   for (int i = 0; i < size - 1; i++) {
-    if (v[i] <= x && v[i + 1] > x) return i;
+    if (v[i] <= x && v[i + 1] > x)
+      return i;
   }
   return size - 2;
 }
-}  // namespace Spl
-}  // namespace Bembel
+} // namespace Spl
+} // namespace Bembel
 #endif

@@ -16,7 +16,7 @@ namespace Spl {
  *  \brief implements Bezier extraction via the solution of an interpolation
  *         problem.
  */
-template <typename T>
+template <typename T, typename ptScalar>
 Eigen::SparseMatrix<T> MakeProjection(const std::vector<T> &x_knots,
                                       const std::vector<T> &y_knots,
                                       const std::vector<T> &x_unique_knots,
@@ -27,7 +27,7 @@ Eigen::SparseMatrix<T> MakeProjection(const std::vector<T> &x_knots,
   // B-Spline basis given by x_knots,y_knots and xp,yp.
   // Sparse does weird things. We need not be that accurate, since the right
   // coeefs will be >=.1
-  constexpr double sparseTol = 0.001;
+  ptScalar sparseTol = 0.001;
   // Number of functions in X,Y and total
   const int size_phi_x = (x_unique_knots.size() - 1) * polynomial_degree_x;
   const int size_phi_y = (y_unique_knots.size() - 1) * polynomial_degree_y;
@@ -37,8 +37,8 @@ Eigen::SparseMatrix<T> MakeProjection(const std::vector<T> &x_knots,
   const int size_psi = size_psi_x * size_psi_y;
 
   // Interpolation points
-  const auto xmask = MakeInterpolationMask(polynomial_degree_x);
-  const auto ymaks = MakeInterpolationMask(polynomial_degree_y);
+  const auto xmask = MakeInterpolationMask<ptScalar>(polynomial_degree_x);
+  const auto ymaks = MakeInterpolationMask<ptScalar>(polynomial_degree_y);
 
   const auto xpoint = MakeInterpolationPoints(x_unique_knots, xmask);
   const auto ypoint = MakeInterpolationPoints(y_unique_knots, ymaks);
@@ -50,21 +50,23 @@ Eigen::SparseMatrix<T> MakeProjection(const std::vector<T> &x_knots,
   Eigen::Matrix<T, -1, -1> tempsolver =
       Eigen::Matrix<T, -1, -1>::Zero(size_phi, size_phi);
 
-  double *coefficients_x = new double[polynomial_degree_x];
-  double *coefficients_y = new double[polynomial_degree_y];
+  ptScalar *coefficients_x = new ptScalar[polynomial_degree_x];
+  ptScalar *coefficients_y = new ptScalar[polynomial_degree_y];
 
-  for (int i = 0; i < polynomial_degree_x; i++) coefficients_x[i] = 0;
+  for (int i = 0; i < polynomial_degree_x; i++)
+    coefficients_x[i] = 0;
 
-  for (int i = 0; i < polynomial_degree_y; i++) coefficients_y[i] = 0;
+  for (int i = 0; i < polynomial_degree_y; i++)
+    coefficients_y[i] = 0;
 
-  auto BezBasis = [](std::vector<double> uniq, int deg, int pos, double pt,
-                     double *coef) {
+  auto BezBasis = [](std::vector<ptScalar> uniq, int deg, int pos, ptScalar pt,
+                     ptScalar *coef) -> ptScalar {
     std::div_t loc = std::div(pos, deg);
     if (pt > uniq[loc.quot + 1] || pt < uniq[loc.quot]) {
       return 0.;
     } else {
       coef[loc.rem] = 1;
-      double out = Bembel::Basis::ShapeFunctionHandler::evalCoef(
+      ptScalar out = Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalCoef(
           deg - 1, coef, Rescale(pt, uniq[loc.quot], uniq[loc.quot + 1]));
       coef[loc.rem] = 0;
       return out;
@@ -90,7 +92,7 @@ Eigen::SparseMatrix<T> MakeProjection(const std::vector<T> &x_knots,
   delete[] coefficients_x;
   delete[] coefficients_y;
 
-  Eigen::FullPivLU<Eigen::Matrix<double, -1, -1>> lu_decomp(tempsolver);
+  Eigen::FullPivLU<Eigen::Matrix<ptScalar, -1, -1>> lu_decomp(tempsolver);
   assert(lu_decomp.rank() == size_phi);
   /// The inverse matrix, for the solition of the linear system to come.
   Eigen::Matrix<T, -1, -1> solve = tempsolver.inverse();
@@ -111,6 +113,6 @@ Eigen::SparseMatrix<T> MakeProjection(const std::vector<T> &x_knots,
 
   return (Proj.sparseView()).pruned(sparseTol);
 }
-}  // namespace Spl
-}  // namespace Bembel
+} // namespace Spl
+} // namespace Bembel
 #endif

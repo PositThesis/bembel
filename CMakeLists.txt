@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(Bembel CXX)
+project(Bembel LANGUAGES CXX)
 
 message(STATUS "
 
@@ -75,7 +75,7 @@ include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-march=native" MARCHNATIVE)
 CHECK_CXX_COMPILER_FLAG("-flto" FLTO)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -I${BEMBEL_PATH}")
+set(CMAKE_CXX_FLAGS "-std=c++17 -I${BEMBEL_PATH}")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
@@ -114,3 +114,40 @@ add_custom_target(release
 add_subdirectory(tests)
 add_subdirectory(examples)
 enable_testing()
+
+
+set(PROJECT_VERSION 1.0)
+
+# Based on/taken from this article https://dominikberner.ch/cmake-interface-lib/
+include(GNUInstallDirs)
+add_library(Bembel INTERFACE)
+target_include_directories(Bembel INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                                $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_compile_features(Bembel INTERFACE cxx_std_20)
+install(TARGETS Bembel
+        EXPORT ${PROJECT_NAME}_Targets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
+                                 VERSION ${PROJECT_VERSION}
+                                 COMPATIBILITY SameMajorVersion)
+configure_package_config_file(
+  "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+  INSTALL_DESTINATION
+  ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake)
+
+install(EXPORT ${PROJECT_NAME}_Targets
+        FILE ${PROJECT_NAME}Targets.cmake
+        NAMESPACE ${PROJECT_NAME}::
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake)
+
+install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+              "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}/cmake)
+
+
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/Bembel" DESTINATION include)

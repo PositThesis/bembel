@@ -14,6 +14,7 @@ namespace Bembel {
  *  \brief this class wraps a GeometryVector and provides some basic
  *         functionality, like reading Geometry files
  */
+template <typename ptScalar>
 class Geometry {
  public:
   //////////////////////////////////////////////////////////////////////////////
@@ -21,18 +22,18 @@ class Geometry {
   //////////////////////////////////////////////////////////////////////////////
   Geometry() {}
   Geometry(const std::string &filename) { init_Geometry(filename); }
-  Geometry(Geometry &&other) { geometry_ = std::move(other.geometry_); }
+  Geometry(Geometry<ptScalar> &&other) { geometry_ = std::move(other.geometry_); }
   // though we are using a shared pointer, we are creating an actual
   // copy here. might be useful if we want to modify the geometry object
-  Geometry(const Geometry &other) {
-    geometry_ = std::make_shared<PatchVector>();
+  Geometry(const Geometry<ptScalar> &other) {
+    geometry_ = std::make_shared<PatchVector<ptScalar>>();
     *geometry_ = *(other.geometry_);
   }
-  Geometry(const PatchVector &in) {
-    geometry_ = std::make_shared<PatchVector>();
+  Geometry(const PatchVector<ptScalar> &in) {
+    geometry_ = std::make_shared<PatchVector<ptScalar>>();
     *geometry_ = in;
   }
-  Geometry &operator=(Geometry other) {
+  Geometry &operator=(Geometry<ptScalar> other) {
     std::swap(geometry_, other.geometry_);
     return *this;
   }
@@ -44,25 +45,25 @@ class Geometry {
     // to be chosen higher than the smoothness of the NÙRBS mappings. Thus, we
     // need to shredder the geometry mappings to have Bezier patches. You can
     // achieve the higher regularity by changing coefficients in the projector.
-    auto tmp = Bembel::PatchShredder(Bembel::LoadGeometryFile(filename));
-    geometry_ = std::make_shared<PatchVector>();
+    auto tmp = Bembel::PatchShredder(Bembel::LoadGeometryFile<ptScalar>(filename));
+    geometry_ = std::make_shared<PatchVector<ptScalar>>();
     *geometry_ = tmp;
   }
   //////////////////////////////////////////////////////////////////////////////
   //    getters
   //////////////////////////////////////////////////////////////////////////////
-  const PatchVector &get_geometry() const { return *geometry_; }
-  PatchVector &get_geometry() { return *geometry_; }
-  const std::shared_ptr<PatchVector> get_geometry_ptr() const {
+  const PatchVector<ptScalar> &get_geometry() const { return *geometry_; }
+  PatchVector<ptScalar> &get_geometry() { return *geometry_; }
+  const std::shared_ptr<PatchVector<ptScalar>> get_geometry_ptr() const {
     return geometry_;
   }
-  std::shared_ptr<PatchVector> get_geometry_ptr() { return geometry_; }
+  std::shared_ptr<PatchVector<ptScalar>> get_geometry_ptr() { return geometry_; }
   int get_number_of_patches() const { return geometry_->size(); };
   //////////////////////////////////////////////////////////////////////////////
   //    private member variables
   //////////////////////////////////////////////////////////////////////////////
  private:
-  std::shared_ptr<PatchVector> geometry_;
+  std::shared_ptr<PatchVector<ptScalar>> geometry_;
 };
 }  // namespace Bembel
 #endif

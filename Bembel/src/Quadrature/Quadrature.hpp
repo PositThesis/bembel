@@ -11,10 +11,10 @@
 
 namespace Bembel {
 
-template <unsigned int Dimension>
+template <unsigned int Dimension, typename ptScalar>
 struct Quadrature {
-  Eigen::Matrix<double, Dimension, Eigen::Dynamic> xi_;
-  Eigen::VectorXd w_;
+  Eigen::Matrix<ptScalar, Dimension, Eigen::Dynamic> xi_;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> w_;
 };
 
 }  // namespace Bembel

@@ -55,10 +55,10 @@ int main() {
   Test::TestGeometryWriter::writeEdgeCase3();
   Test::TestGeometryWriter::writeEdgeCase4();
 
-  Bembel::Geometry g1("test_EdgeCase1.dat");
-  Bembel::Geometry g2("test_EdgeCase2.dat");
-  Bembel::Geometry g3("test_EdgeCase3.dat");
-  Bembel::Geometry g4("test_EdgeCase4.dat");
+  Bembel::Geometry<double> g1("test_EdgeCase1.dat");
+  Bembel::Geometry<double> g2("test_EdgeCase2.dat");
+  Bembel::Geometry<double> g3("test_EdgeCase3.dat");
+  Bembel::Geometry<double> g4("test_EdgeCase4.dat");
 
   // We check that the orientation is correct, i.e., that all allowed cases are
   // present and no mistake has been made in the rotation of the center-patch.
@@ -85,15 +85,15 @@ int main() {
       }
       pts.shrink_to_fit();
 
-      AnsatzSpace<TestOperatorDivC> a1(g1, M, P);
-      AnsatzSpace<TestOperatorDivC> a2(g2, M, P);
-      AnsatzSpace<TestOperatorDivC> a3(g3, M, P);
-      AnsatzSpace<TestOperatorDivC> a4(g4, M, P);
+      AnsatzSpace<TestOperatorDivC, double> a1(g1, M, P);
+      AnsatzSpace<TestOperatorDivC, double> a2(g2, M, P);
+      AnsatzSpace<TestOperatorDivC, double> a3(g3, M, P);
+      AnsatzSpace<TestOperatorDivC, double> a4(g4, M, P);
 
-      AnsatzSpace<TestOperatorC> a1c(g1, M, P);
-      AnsatzSpace<TestOperatorC> a2c(g2, M, P);
-      AnsatzSpace<TestOperatorC> a3c(g3, M, P);
-      AnsatzSpace<TestOperatorC> a4c(g4, M, P);
+      AnsatzSpace<TestOperatorC, double> a1c(g1, M, P);
+      AnsatzSpace<TestOperatorC, double> a2c(g2, M, P);
+      AnsatzSpace<TestOperatorC, double> a3c(g3, M, P);
+      AnsatzSpace<TestOperatorC, double> a4c(g4, M, P);
 
       const int dofsDiv = a1.get_number_of_dofs();
       const int dofsCon = a1c.get_number_of_dofs();
@@ -109,15 +109,15 @@ int main() {
         coefsCon(i) = i - dofsCon / 2;
       }
 
-      FunctionEvaluator<TestOperatorDivC> fe1(a1, coefsDiv);
-      FunctionEvaluator<TestOperatorDivC> fe2(a2, coefsDiv);
-      FunctionEvaluator<TestOperatorDivC> fe3(a3, coefsDiv);
-      FunctionEvaluator<TestOperatorDivC> fe4(a4, coefsDiv);
+      FunctionEvaluator<TestOperatorDivC, double> fe1(a1, coefsDiv);
+      FunctionEvaluator<TestOperatorDivC, double> fe2(a2, coefsDiv);
+      FunctionEvaluator<TestOperatorDivC, double> fe3(a3, coefsDiv);
+      FunctionEvaluator<TestOperatorDivC, double> fe4(a4, coefsDiv);
 
-      FunctionEvaluator<TestOperatorC> fe1c(a1c, coefsCon);
-      FunctionEvaluator<TestOperatorC> fe2c(a2c, coefsCon);
-      FunctionEvaluator<TestOperatorC> fe3c(a3c, coefsCon);
-      FunctionEvaluator<TestOperatorC> fe4c(a4c, coefsCon);
+      FunctionEvaluator<TestOperatorC, double> fe1c(a1c, coefsCon);
+      FunctionEvaluator<TestOperatorC, double> fe2c(a2c, coefsCon);
+      FunctionEvaluator<TestOperatorC, double> fe3c(a3c, coefsCon);
+      FunctionEvaluator<TestOperatorC, double> fe4c(a4c, coefsCon);
 
       for (int j = 0; j < pts.size(); ++j) {
         // We check if the normal component of the vector field is continuous.

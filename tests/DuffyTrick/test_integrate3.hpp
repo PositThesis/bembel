@@ -12,10 +12,10 @@
 namespace Test {
 namespace DuffyTrick {
 
-template <typename Derived, unsigned int maxqdeg>
-bool test_integrate3(const Bembel::AnsatzSpace<Derived> &ansatz_space,
-                     const Bembel::LinearOperatorBase<Derived> &linOp) {
-  Bembel::GaussSquare<maxqdeg + 1> GS;
+template <typename Derived, unsigned int maxqdeg, typename ptScalar>
+bool test_integrate3(const Bembel::AnsatzSpace<Derived, ptScalar> &ansatz_space,
+                     const Bembel::LinearOperatorBase<Derived, ptScalar> &linOp) {
+  Bembel::GaussSquare<maxqdeg + 1, ptScalar> GS;
   auto Q = GS[maxqdeg];
 
   Eigen::MatrixXd ffield_qnodes(0, 0);

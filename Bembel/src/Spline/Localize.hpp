@@ -19,16 +19,19 @@ namespace Spl {
 // At first the a==0 and b==1 seems insane. However, this is the case quite
 // often and actually shaves off a couple of % of runtime, since the comparison
 // is cheaper than a division.
-constexpr inline double Rescale(double x, double a, double b) noexcept {
+
+template <typename ptScalar>
+constexpr inline ptScalar Rescale(ptScalar x, ptScalar a, ptScalar b) noexcept {
   return (a == 0 && b == 1) ? x : (x - a) / (b - a);
 }
 
 // We use equidistant points for our interpolation problems. This is not
 // optimal, but works sufficiently well.
-inline std::vector<double> MakeInterpolationMask(
-    int polynomial_degree) noexcept {
-  std::vector<double> out(polynomial_degree);
-  const double h = 1. / (polynomial_degree + 1);
+template <typename ptScalar>
+inline std::vector<ptScalar>
+MakeInterpolationMask(int polynomial_degree) noexcept {
+  std::vector<ptScalar> out(polynomial_degree);
+  const ptScalar h = 1. / (polynomial_degree + 1);
   for (int i = 0; i < polynomial_degree; i++) {
     out[i] = ((i + 1) * h);
   }
@@ -41,8 +44,9 @@ inline std::vector<double> MakeInterpolationMask(
  *         knot vector without any repetitions.
  **/
 template <typename T>
-inline std::vector<T> MakeInterpolationPoints(
-    const std::vector<T> &uniq, const std::vector<T> &mask) noexcept {
+inline std::vector<T>
+MakeInterpolationPoints(const std::vector<T> &uniq,
+                        const std::vector<T> &mask) noexcept {
   const int size = uniq.size();
   std::vector<T> out;
 
@@ -61,14 +65,16 @@ inline std::vector<T> MakeInterpolationPoints(
  *  \brief returns the coefficients to represent a function in the Bernstein
  *         basis on [0,1].
  **/
-inline Eigen::Matrix<double, -1, -1> GetInterpolationMatrix(
-    int polynomial_degree, const std::vector<double> &mask) {
-  Eigen::Matrix<double, -1, -1> interpolationMatrix(polynomial_degree + 1,
-                                                    polynomial_degree + 1);
+template <typename ptScalar>
+inline Eigen::Matrix<ptScalar, -1, -1>
+GetInterpolationMatrix(int polynomial_degree,
+                       const std::vector<ptScalar> &mask) {
+  Eigen::Matrix<ptScalar, -1, -1> interpolationMatrix(polynomial_degree + 1,
+                                                      polynomial_degree + 1);
 
-  double val[Constants::MaxP + 1];
+  ptScalar val[Constants::MaxP + 1];
   for (int j = 0; j < polynomial_degree + 1; j++) {
-    Bembel::Basis::ShapeFunctionHandler::evalBasis(polynomial_degree, val,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalBasis(polynomial_degree, val,
                                                    mask[j]);
     for (int i = 0; i < polynomial_degree + 1; i++)
       interpolationMatrix(j, i) = val[i];
@@ -81,12 +87,12 @@ inline Eigen::Matrix<double, -1, -1> GetInterpolationMatrix(
  *  \ingroup Spline
  *  \brief this solves a generic interpolation problem.
  **/
-template <typename T>
-inline void GetCoefficients(const int incr, const std::vector<double> &mask,
+template <typename T, typename ptScalar>
+inline void GetCoefficients(const int incr, const std::vector<ptScalar> &mask,
                             const std::vector<T> &values, T *coefs) {
   int polynomial_degree = mask.size() - 1;
 
-  Eigen::Matrix<double, -1, -1> im =
+  Eigen::Matrix<ptScalar, -1, -1> im =
       GetInterpolationMatrix(polynomial_degree, mask);
 
   Eigen::Matrix<T, -1, 1> rhs(polynomial_degree + 1);
@@ -108,16 +114,16 @@ inline void GetCoefficients(const int incr, const std::vector<double> &mask,
 
 /**
  *  \ingroup Spline
- *  \brief this solves a generic interpolation problem. 
+ *  \brief this solves a generic interpolation problem.
  **/
-template <typename T>
+template <typename T, typename ptScalar>
 inline std::vector<T> GetCoefficients(const int increments,
-                                      const std::vector<double> &mask,
+                                      const std::vector<ptScalar> &mask,
                                       const std::vector<T> &values) {
-  std::vector<double> out(increments * (mask.size()));
+  std::vector<ptScalar> out(increments * (mask.size()));
   GetCoefficients<T>(increments, mask, values, out.data());
   return out;
 }
-}  // namespace Spl
-}  // namespace Bembel
+} // namespace Spl
+} // namespace Bembel
 #endif

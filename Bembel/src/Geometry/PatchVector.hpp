@@ -8,6 +8,8 @@
 #ifndef BEMBEL_GEOMETRY_PATCHVECTOR_H_
 #define BEMBEL_GEOMETRY_PATCHVECTOR_H_
 
+#include <vector>
+
 namespace Bembel {
 /**
  *  \ingroup Geometry
@@ -18,7 +20,8 @@ namespace Bembel {
  *format, and the new format must provide an eval(), evalNorma(), evalJacobian()
  *and updateSurfacePoint() method.
  **/
-typedef std::vector<Bembel::Patch> PatchVector;
+template <typename ptScalar>
+using PatchVector = std::vector<Bembel::Patch<ptScalar>>;
 
 }  // namespace Bembel
 #endif

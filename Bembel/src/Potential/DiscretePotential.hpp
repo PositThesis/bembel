@@ -14,22 +14,22 @@ namespace Bembel {
  *  \brief DiscretePotential
  *  \todo  Add a documentation
  */
-template <typename Derived, typename LinOp>
+template <typename Derived, typename LinOp, typename ptScalar>
 class DiscretePotential {
  public:
   //////////////////////////////////////////////////////////////////////////////
   //    constructors
   //////////////////////////////////////////////////////////////////////////////
   DiscretePotential() {}
-  DiscretePotential(const AnsatzSpace<LinOp> &ansatz_space) {
+  DiscretePotential(const AnsatzSpace<LinOp, ptScalar> &ansatz_space) {
     init_DiscretePotential(ansatz_space);
   }
   //////////////////////////////////////////////////////////////////////////////
   //    init_DiscretePotential
   //////////////////////////////////////////////////////////////////////////////
-  void init_DiscretePotential(const AnsatzSpace<LinOp> &ansatz_space) {
+  void init_DiscretePotential(const AnsatzSpace<LinOp, ptScalar> &ansatz_space) {
     ansatz_space_ = ansatz_space;
-    fun_ev_ = FunctionEvaluator<LinOp>(ansatz_space_);
+    fun_ev_ = FunctionEvaluator<LinOp, ptScalar>(ansatz_space_);
     /**
      * \todo obtain this from ansatz space
      */
@@ -47,17 +47,17 @@ class DiscretePotential {
                     typename LinearOperatorTraits<LinOp>::Scalar,
                     typename PotentialTraits<Derived>::Scalar>::Scalar,
                 Eigen::Dynamic, PotentialTraits<Derived>::OutputSpaceDimension>
-  evaluate(const Eigen::Matrix<double, Eigen::Dynamic, 3> &points) {
+  evaluate(const Eigen::Matrix<ptScalar, Eigen::Dynamic, 3> &points) {
     auto FunctionSpaceVectorDimension =
         getFunctionSpaceVectorDimension<LinearOperatorTraits<LinOp>::Form>();
     auto OutputDimension = PotentialTraits<Derived>::OutputSpaceDimension;
 
-    GaussSquare<Constants::maximum_quadrature_degree> GS;
+    GaussSquare<Constants::maximum_quadrature_degree, ptScalar> GS;
     auto Q = GS[deg_];
 
     auto super_space = ansatz_space_.get_superspace();
 
-    const ElementTree &element_tree = super_space.get_mesh().get_element_tree();
+    const ElementTree<ptScalar> &element_tree = super_space.get_mesh().get_element_tree();
     auto number_of_elements = element_tree.get_number_of_elements();
 
     auto polynomial_degree = super_space.get_polynomial_degree();
@@ -89,7 +89,7 @@ class DiscretePotential {
            element != element_tree.cpend(); ++element) {
 #pragma omp single nowait
         {
-          SurfacePoint qp;
+          SurfacePoint<ptScalar> qp;
           for (auto j = 0; j < Q.w_.size(); ++j) {
             super_space.map2surface(
                 *element, Q.xi_.col(j),
@@ -125,8 +125,8 @@ class DiscretePotential {
  private:
   int deg_;
   Derived pot_;
-  AnsatzSpace<LinOp> ansatz_space_;
-  FunctionEvaluator<LinOp> fun_ev_;
+  AnsatzSpace<LinOp, ptScalar> ansatz_space_;
+  FunctionEvaluator<LinOp, ptScalar> fun_ev_;
 };  // namespace Bembel
 
 }  // namespace Bembel

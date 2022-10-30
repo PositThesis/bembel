@@ -24,7 +24,7 @@ struct LinearFormTraits {
  *  \brief This class provides a blueprint for the class that needs to be
  * specialized for assembly of the right hand side of the linear system.
  */
-template <typename Derived, typename Scalar>
+template <typename Derived, typename Scalar, typename ptScalar>
 struct LinearFormBase {
   // Constructors
   LinearFormBase(){};
@@ -37,7 +37,7 @@ struct LinearFormBase {
   // Surface point [xi; w; Chi(xi); dsChi(xi); dtChi(xi)]
   template <class T>
   void evaluateIntegrand(
-      const T &super_space, const SurfacePoint &p,
+      const T &super_space, const SurfacePoint<ptScalar> &p,
       Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *intval) const {
     static_cast<const Derived *>(this)->evaluateLinearForm_impl(super_space, p,
                                                                 intval);

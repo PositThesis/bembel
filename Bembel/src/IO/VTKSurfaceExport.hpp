@@ -12,6 +12,7 @@
 namespace Bembel {
 
 // This class provides the possibilty to generate a vtk-visualization.
+template <typename ptScalar>
 class VTKSurfaceExport {
  public:
   /**
@@ -22,12 +23,12 @@ class VTKSurfaceExport {
   * deliberately not a mesh, since the visualization will often be on a finer
   * mesh then that of a computation.
   **/
-  VTKSurfaceExport(const Geometry& geo, int M) { init_VTKSurfaceExport(geo, M); }
-  inline void init_VTKSurfaceExport(const Geometry& geo, int M) {
+  VTKSurfaceExport(const Geometry<ptScalar>& geo, int M) { init_VTKSurfaceExport(geo, M); }
+  inline void init_VTKSurfaceExport(const Geometry<ptScalar>& geo, int M) {
     msh.init_ClusterTree(geo, M);
     points = msh.get_element_tree().generatePointList().transpose();
     cells = msh.get_element_tree().generateElementList().transpose();
-    normals = Eigen::MatrixXd(cells.rows(), 3);
+    normals = Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>(cells.rows(), 3);
     patch_number = Eigen::VectorXi(cells.rows());
     
     for (auto e = msh.get_element_tree().cpbegin();
@@ -46,13 +47,13 @@ class VTKSurfaceExport {
   // One can add data to visualize via the addDataSet methods. They accept a
   // std::function object of different types, and generate the data needed for
   // the vtk file. Allowed formats are:
-  // std::function<double(int, Eigen::Vector2d)>& fun)
-  // std::function<Eigen::Vector3d(int, Eigen::Vector2d)>
-  // std::function<double(Eigen::Vector3d)>
-  // std::function<Eigen::Vector3d(Eigen::Vector3d)>
+  // std::function<ptScalar(int, Eigen::Matrix<ptScalar, 2, 1>)>& fun)
+  // std::function<Eigen::Matrix<ptScalar, 3, 1>(int, Eigen::Matrix<ptScalar, 2, 1>)>
+  // std::function<ptScalar(Eigen::Matrix<ptScalar, 3, 1>)>
+  // std::function<Eigen::Matrix<ptScalar, 3, 1>(Eigen::Matrix<ptScalar, 3, 1>)>
   inline void addDataSet(const std::string& name,
-                         std::function<double(int, const Eigen::Vector2d&)> fun) {
-    Eigen::MatrixXd data(cells.rows(), 1);
+                         std::function<ptScalar(int, const Eigen::Matrix<ptScalar, 2, 1>&)> fun) {
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> data(cells.rows(), 1);
     for (auto e = msh.get_element_tree().cpbegin();
          e != msh.get_element_tree().cpend(); ++e) {
       data(e->id_) = fun(e->patch_, e->referenceMidpoint());
@@ -62,8 +63,8 @@ class VTKSurfaceExport {
   }
   inline void addDataSet(
       const std::string& name,
-      std::function<Eigen::Vector3d(int, const Eigen::Vector2d&)> fun) {
-    Eigen::MatrixXd data(cells.rows(), 3);
+      std::function<Eigen::Matrix<ptScalar, 3, 1>(int, const Eigen::Matrix<ptScalar, 2, 1>&)> fun) {
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> data(cells.rows(), 3);
     int k = 0;
     for (auto e = msh.get_element_tree().cpbegin();
          e != msh.get_element_tree().cpend(); ++e) {
@@ -73,8 +74,8 @@ class VTKSurfaceExport {
     return;
   }
   inline void addDataSet(const std::string& name,
-                         std::function<Eigen::Vector3d(const Eigen::Vector3d&)> fun) {
-    Eigen::MatrixXd data(cells.rows(), 3);
+                         std::function<Eigen::Matrix<ptScalar, 3, 1>(const Eigen::Matrix<ptScalar, 3, 1>&)> fun) {
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> data(cells.rows(), 3);
     for (auto e = msh.get_element_tree().cpbegin();
          e != msh.get_element_tree().cpend(); ++e) {
       data.row(e->id_) =
@@ -85,8 +86,8 @@ class VTKSurfaceExport {
     return;
   }
   inline void addDataSet(const std::string& name,
-                         std::function<double(const Eigen::Vector3d&)> fun) {
-    Eigen::MatrixXd data(cells.rows(), 1);
+                         std::function<ptScalar(const Eigen::Matrix<ptScalar, 3, 1>&)> fun) {
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> data(cells.rows(), 1);
     for (auto e = msh.get_element_tree().cpbegin();
          e != msh.get_element_tree().cpend(); ++e) {
       data(e->id_) =
@@ -153,7 +154,7 @@ class VTKSurfaceExport {
  private:
   // This routine turns the data of the above DataSet-routines into a string and
   // stores it.
-  inline void addDataSet_(const std::string& name, const Eigen::MatrixXd& mat) {
+  inline void addDataSet_(const std::string& name, const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>& mat) {
     assert(mat.cols() == 1 || mat.cols() == 3);
     assert(mat.rows() == cells.rows());
 
@@ -172,10 +173,10 @@ class VTKSurfaceExport {
     additionalData.push_back(data_ascii);
   }
 
-  ClusterTree msh;
-  Eigen::MatrixXd points;
+  ClusterTree<ptScalar> msh;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> points;
   Eigen::MatrixXi cells;
-  Eigen::MatrixXd normals;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> normals;
   Eigen::VectorXi patch_number;
   std::vector<std::string> additionalData;
 };

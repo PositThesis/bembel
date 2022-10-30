@@ -10,7 +10,7 @@
 #include <iostream>
 
 int main() {
-  Bembel::Geometry geometry("sphere.dat");
+  Bembel::Geometry<double> geometry("sphere.dat");
   std::cout << "The geometry has " << geometry.get_number_of_patches()
             << " patches." << std::endl;
   std::cout << std::string(60, '-') << std::endl;

@@ -31,7 +31,7 @@ int main() {
 
   // Load geometry from file "sphere.dat", which must be placed in the same
   // directory as the executable
-  Geometry geometry("sphere.dat");
+  Geometry<double> geometry("sphere.dat");
 
   // Define evaluation points for scattered field, sphere of radius 2, 10*10
   // points.
@@ -56,18 +56,18 @@ int main() {
       std::cout << "Degree " << polynomial_degree << " Level "
                 << refinement_level;
       // Build ansatz space
-      AnsatzSpace<MaxwellSingleLayerOperator> ansatz_space(
+      AnsatzSpace<MaxwellSingleLayerOperator<double>, double> ansatz_space(
           geometry, refinement_level, polynomial_degree);
 
       // Set up load vector
-      DiscreteLinearForm<RotatedTangentialTrace<std::complex<double>>,
-                         MaxwellSingleLayerOperator>
+      DiscreteLinearForm<RotatedTangentialTrace<std::complex<double>, double>,
+                         MaxwellSingleLayerOperator<double>, double>
           disc_lf(ansatz_space);
       disc_lf.get_linear_form().set_function(fun);
       disc_lf.compute();
 
       // Set up and compute discrete operator
-      DiscreteOperator<MatrixXcd, MaxwellSingleLayerOperator> disc_op(
+      DiscreteOperator<MatrixXcd, MaxwellSingleLayerOperator<double>, double> disc_op(
           ansatz_space);
       disc_op.get_linear_operator().set_wavenumber(wavenumber);
       disc_op.compute();
@@ -78,8 +78,8 @@ int main() {
       auto rho = lu.solve(disc_lf.get_discrete_linear_form());
 
       // evaluate potential
-      DiscretePotential<MaxwellSingleLayerPotential<MaxwellSingleLayerOperator>,
-                        MaxwellSingleLayerOperator>
+      DiscretePotential<MaxwellSingleLayerPotential<MaxwellSingleLayerOperator<double>, double>,
+                        MaxwellSingleLayerOperator<double>, double>
           disc_pot(ansatz_space);
       disc_pot.get_potential().set_wavenumber(wavenumber);
       disc_pot.set_cauchy_data(rho);

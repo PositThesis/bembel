@@ -14,7 +14,7 @@ namespace Bembel {
  *  \brief The FunctionEvaluator provides means to evaluate coefficient vectors
  * as functions on the geometry.
  */
-template <typename Derived>
+template <typename Derived, typename ptScalar>
 class FunctionEvaluator {
  public:
   //////////////////////////////////////////////////////////////////////////////
@@ -30,12 +30,12 @@ class FunctionEvaluator {
         other.polynomial_degree_plus_one_squared_;
     return *this;
   }
-  FunctionEvaluator(const AnsatzSpace<Derived> &ansatz_space) {
+  FunctionEvaluator(const AnsatzSpace<Derived, ptScalar> &ansatz_space) {
     init_FunctionEvaluator(ansatz_space);
     return;
   }
   FunctionEvaluator(
-      const AnsatzSpace<Derived> &ansatz_space,
+      const AnsatzSpace<Derived, ptScalar> &ansatz_space,
       const Eigen::Matrix<typename LinearOperatorTraits<Derived>::Scalar,
                           Eigen::Dynamic, 1> &fun) {
     init_FunctionEvaluator(ansatz_space, fun);
@@ -44,7 +44,7 @@ class FunctionEvaluator {
   //////////////////////////////////////////////////////////////////////////////
   //    init_Ansatzspace
   //////////////////////////////////////////////////////////////////////////////
-  void init_FunctionEvaluator(const AnsatzSpace<Derived> &ansatz_space) {
+  void init_FunctionEvaluator(const AnsatzSpace<Derived, ptScalar> &ansatz_space) {
     ansatz_space_ = ansatz_space;
     auto polynomial_degree = ansatz_space_.get_polynomial_degree();
     polynomial_degree_plus_one_squared_ =
@@ -56,7 +56,7 @@ class FunctionEvaluator {
     return;
   }
   void init_FunctionEvaluator(
-      const AnsatzSpace<Derived> &ansatz_space,
+      const AnsatzSpace<Derived, ptScalar> &ansatz_space,
       const Eigen::Matrix<typename LinearOperatorTraits<Derived>::Scalar,
                           Eigen::Dynamic, 1> &fun) {
     ansatz_space_ = ansatz_space;
@@ -76,12 +76,12 @@ class FunctionEvaluator {
   Eigen::Matrix<
       typename LinearOperatorTraits<Derived>::Scalar,
       getFunctionSpaceOutputDimension<LinearOperatorTraits<Derived>::Form>(), 1>
-  evaluateOnPatch(int patch, const Eigen::Vector2d &ref_point) const {
+  evaluateOnPatch(int patch, const Eigen::Matrix<ptScalar, 2, 1> &ref_point) const {
     const int elements_per_direction =
         (1 << ansatz_space_.get_refinement_level());
     const int elements_per_patch =
         elements_per_direction * elements_per_direction;
-    const double h = 1. / ((double)(elements_per_direction));
+    const ptScalar h = 1. / ((ptScalar)(elements_per_direction));
     const int x_idx_ = std::floor(ref_point(0) / h);
     const int y_idx_ = std::floor(ref_point(1) / h);
     const int x_idx = std::min(std::max(x_idx_, 0), elements_per_direction - 1);
@@ -89,13 +89,13 @@ class FunctionEvaluator {
     const int tp_idx =
         x_idx + elements_per_direction * y_idx + patch * elements_per_patch;
     const int et_idx = reordering_vector_[tp_idx];
-    const ElementTree &et =
+    const ElementTree<ptScalar> &et =
         ansatz_space_.get_superspace().get_mesh().get_element_tree();
     auto it = et.cpbegin();
     std::advance(it, et_idx);
-    const ElementTreeNode &element = *it;
+    const ElementTreeNode<ptScalar> &element = *it;
 
-    SurfacePoint sp;
+    SurfacePoint<ptScalar> sp;
     ansatz_space_.get_superspace().get_geometry()[patch].updateSurfacePoint(
         &sp, ref_point, 1, element.mapToReferenceElement(ref_point));
     return evaluate(element, sp);
@@ -103,7 +103,7 @@ class FunctionEvaluator {
   Eigen::Matrix<
       typename LinearOperatorTraits<Derived>::Scalar,
       getFunctionSpaceOutputDimension<LinearOperatorTraits<Derived>::Form>(), 1>
-  evaluate(const ElementTreeNode &element, const SurfacePoint &p) const {
+  evaluate(const ElementTreeNode<ptScalar> &element, const SurfacePoint<ptScalar> &p) const {
     return eval_.eval(
         ansatz_space_.get_superspace(), polynomial_degree_plus_one_squared_,
         element, p,
@@ -113,7 +113,7 @@ class FunctionEvaluator {
                        LinearOperatorTraits<Derived>::Form>()));
   }
   typename LinearOperatorTraits<Derived>::Scalar evaluateDiv(
-      const ElementTreeNode &element, const SurfacePoint &p) const {
+      const ElementTreeNode<ptScalar> &element, const SurfacePoint<ptScalar> &p) const {
     return eval_.evalDiv(
         ansatz_space_.get_superspace(), polynomial_degree_plus_one_squared_,
         element, p,
@@ -142,14 +142,14 @@ class FunctionEvaluator {
   //////////////////////////////////////////////////////////////////////////////
  private:
   std::vector<int> reordering_vector_;
-  AnsatzSpace<Derived> ansatz_space_;
+  AnsatzSpace<Derived, ptScalar> ansatz_space_;
   Eigen::Matrix<
       typename LinearOperatorTraits<Derived>::Scalar, Eigen::Dynamic,
       getFunctionSpaceVectorDimension<LinearOperatorTraits<Derived>::Form>()>
       fun_;
   int polynomial_degree_plus_one_squared_;
   FunctionEvaluatorEval<typename LinearOperatorTraits<Derived>::Scalar,
-                        LinearOperatorTraits<Derived>::Form, Derived>
+                        LinearOperatorTraits<Derived>::Form, Derived, ptScalar>
       eval_;
 };
 

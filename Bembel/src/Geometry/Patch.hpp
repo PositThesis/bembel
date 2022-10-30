@@ -14,23 +14,24 @@ namespace Bembel {
  *  \class Patch
  *  \brief handles a single patch
  **/
+template <typename ptScalar>
 class Patch {
  public:
   //////////////////////////////////////////////////////////////////////////////
   /// constructors
   //////////////////////////////////////////////////////////////////////////////
   Patch(){};
-  Patch(const std::vector<Eigen::Matrix<double, -1, -1>> &control_points,
-        const std::vector<double> &knots_x,
-        const std::vector<double> &knots_y) {
+  Patch(const std::vector<Eigen::Matrix<ptScalar, -1, -1>> &control_points,
+        const std::vector<ptScalar> &knots_x,
+        const std::vector<ptScalar> &knots_y) {
     init_Patch(control_points, knots_x, knots_y);
   }
   //////////////////////////////////////////////////////////////////////////////
   /// init
   //////////////////////////////////////////////////////////////////////////////
-  inline void init_Patch(const std::vector<Eigen::Matrix<double, -1, -1>> &xyzw,
-                         const std::vector<double> &x_knots,
-                         const std::vector<double> &y_knots) {
+  inline void init_Patch(const std::vector<Eigen::Matrix<ptScalar, -1, -1>> &xyzw,
+                         const std::vector<ptScalar> &x_knots,
+                         const std::vector<ptScalar> &y_knots) {
     assert(xyzw.size() == 4);
     const int xyzw_cols = xyzw[0].cols();
     const int xyzw_rows = xyzw[0].rows();
@@ -47,7 +48,7 @@ class Patch {
       // Here I look weather the data given is already in bezier form.
       if (unique_knots_x_.size() == 2 && unique_knots_y_.size() == 2) {
         for (int i = 0; i < 4; i++) {
-          Eigen::Matrix<double, -1, 1> tmp = Spl::Unroll(xyzw[i]);
+          Eigen::Matrix<ptScalar, -1, 1> tmp = Spl::Unroll(xyzw[i]);
           for (int j = 0; j < tmp.rows(); j++) data_[j * 4 + i] = (tmp[j]);
         }
       } else {
@@ -55,12 +56,12 @@ class Patch {
         // systems for
         // the coeffs) and project to the superspace.
 
-        Eigen::SparseMatrix<double> phi = Spl::MakeProjection(
+        Eigen::SparseMatrix<ptScalar> phi = Spl::MakeProjection<ptScalar, ptScalar>(
             x_knots, y_knots, unique_knots_x_, unique_knots_y_,
             polynomial_degree_x_, polynomial_degree_y_);
 
         for (int i = 0; i < 4; i++) {
-          Eigen::Matrix<double, -1, 1> tmp =
+          Eigen::Matrix<ptScalar, -1, 1> tmp =
               Spl::Unroll(xyzw[i]).transpose() * phi.transpose();
 
           for (int j = 0; j < tmp.rows(); j++) data_[j * 4 + i] = (tmp[j]);
@@ -74,32 +75,32 @@ class Patch {
    * scale the input arguments, evaluate the 1D basis functions and sum over
    * them with the controll points from data. */
 
-  Eigen::Vector3d eval(const Eigen::Vector2d &reference_point) const {
+  Eigen::Matrix<ptScalar, 3, 1> eval(const Eigen::Matrix<ptScalar, 2, 1> &reference_point) const {
     const int x_location =
         Spl::FindLocationInKnotVector(reference_point(0), unique_knots_x_);
     const int y_location =
         Spl::FindLocationInKnotVector(reference_point(1), unique_knots_y_);
     const int numy = (unique_knots_y_.size() - 1) * polynomial_degree_y_;
-    const double scaledx =
+    const ptScalar scaledx =
         Spl::Rescale(reference_point(0), unique_knots_x_[x_location],
                      unique_knots_x_[x_location + 1]);
-    const double scaledy =
+    const ptScalar scaledy =
         Spl::Rescale(reference_point(1), unique_knots_y_[y_location],
                      unique_knots_y_[y_location + 1]);
 
-    double *xbasis = new double[polynomial_degree_x_];
-    double *ybasis = new double[polynomial_degree_y_];
+    ptScalar *xbasis = new ptScalar[polynomial_degree_x_];
+    ptScalar *ybasis = new ptScalar[polynomial_degree_y_];
 
-    Bembel::Basis::ShapeFunctionHandler::evalBasis(polynomial_degree_x_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalBasis(polynomial_degree_x_ - 1,
                                                    xbasis, scaledx);
-    Bembel::Basis::ShapeFunctionHandler::evalBasis(polynomial_degree_y_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalBasis(polynomial_degree_y_ - 1,
                                                    ybasis, scaledy);
 
-    double tmp[4] = {0., 0., 0., 0.};
+    ptScalar tmp[4] = {0., 0., 0., 0.};
 
     for (int i = 0; i < polynomial_degree_x_; i++) {
       for (int j = 0; j < polynomial_degree_y_; j++) {
-        const double tpbasisval = xbasis[i] * ybasis[j];
+        const ptScalar tpbasisval = xbasis[i] * ybasis[j];
         const int accs = 4 * (numy * (polynomial_degree_x_ * x_location + i) +
                               polynomial_degree_y_ * y_location + j);
 #pragma omp simd
@@ -110,49 +111,49 @@ class Patch {
     delete[] xbasis;
     delete[] ybasis;
 
-    Eigen::Vector3d out(tmp[0], tmp[1], tmp[2]);
+    Eigen::Matrix<ptScalar, 3, 1> out(tmp[0], tmp[1], tmp[2]);
     // Rescaling by the NRBS weight, i.e. projection to 3D from 4D hom
 
     return out / tmp[3];
   }
 
-  Eigen::Matrix<double, 3, 2> evalJacobian(
-      const Eigen::Vector2d &reference_point) const {
+  Eigen::Matrix<ptScalar, 3, 2> evalJacobian(
+      const Eigen::Matrix<ptScalar, 2, 1> &reference_point) const {
     const int x_location =
         Spl::FindLocationInKnotVector(reference_point(0), unique_knots_x_);
     const int y_location =
         Spl::FindLocationInKnotVector(reference_point(1), unique_knots_y_);
     const int numy = (unique_knots_y_.size() - 1) * polynomial_degree_y_;
-    const double scaledx =
+    const ptScalar scaledx =
         Spl::Rescale(reference_point(0), unique_knots_x_[x_location],
                      unique_knots_x_[x_location + 1]);
-    const double scaledy =
+    const ptScalar scaledy =
         Spl::Rescale(reference_point(1), unique_knots_y_[y_location],
                      unique_knots_y_[y_location + 1]);
 
-    double *xbasis = new double[polynomial_degree_x_];
-    double *ybasis = new double[polynomial_degree_y_];
-    double *xbasisD = new double[polynomial_degree_x_];
-    double *ybasisD = new double[polynomial_degree_y_];
+    ptScalar *xbasis = new ptScalar[polynomial_degree_x_];
+    ptScalar *ybasis = new ptScalar[polynomial_degree_y_];
+    ptScalar *xbasisD = new ptScalar[polynomial_degree_x_];
+    ptScalar *ybasisD = new ptScalar[polynomial_degree_y_];
 
-    Bembel::Basis::ShapeFunctionHandler::evalBasis(polynomial_degree_x_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalBasis(polynomial_degree_x_ - 1,
                                                    xbasis, scaledx);
-    Bembel::Basis::ShapeFunctionHandler::evalBasis(polynomial_degree_y_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalBasis(polynomial_degree_y_ - 1,
                                                    ybasis, scaledy);
-    Bembel::Basis::ShapeFunctionHandler::evalDerBasis(polynomial_degree_x_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalDerBasis(polynomial_degree_x_ - 1,
                                                       xbasisD, scaledx);
-    Bembel::Basis::ShapeFunctionHandler::evalDerBasis(polynomial_degree_y_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalDerBasis(polynomial_degree_y_ - 1,
                                                       ybasisD, scaledy);
 
-    double tmp[4] = {0., 0., 0., 0.};
-    double tmpDx[4] = {0., 0., 0., 0.};
-    double tmpDy[4] = {0., 0., 0., 0.};
+    ptScalar tmp[4] = {0., 0., 0., 0.};
+    ptScalar tmpDx[4] = {0., 0., 0., 0.};
+    ptScalar tmpDy[4] = {0., 0., 0., 0.};
 
     for (int i = 0; i < polynomial_degree_x_; i++) {
       for (int j = 0; j < polynomial_degree_y_; j++) {
-        const double tpbasisval = xbasis[i] * ybasis[j];
-        const double tpbasisvalDx = xbasisD[i] * ybasis[j];
-        const double tpbasisvalDy = xbasis[i] * ybasisD[j];
+        const ptScalar tpbasisval = xbasis[i] * ybasis[j];
+        const ptScalar tpbasisvalDx = xbasisD[i] * ybasis[j];
+        const ptScalar tpbasisvalDy = xbasis[i] * ybasisD[j];
         const int accs = 4 * (numy * (polynomial_degree_x_ * x_location + i) +
                               polynomial_degree_y_ * y_location + j);
 
@@ -172,11 +173,11 @@ class Patch {
     delete[] xbasisD;
     delete[] ybasisD;
 
-    Eigen::Matrix<double, 3, 2> out;
+    Eigen::Matrix<ptScalar, 3, 2> out;
 
-    // Eigen::Vector3d out;
+    // Eigen::Matrix<ptScalar, 3, 1> out;
 
-    double bot = 1. / (tmp[3] * tmp[3]);
+    ptScalar bot = 1. / (tmp[3] * tmp[3]);
 
 #pragma omp simd
     for (int k = 0; k < 3; k++) {
@@ -187,64 +188,64 @@ class Patch {
     return out;
   }
 
-  inline Eigen::Matrix<double, 3, 1> evalNormal(
-      const Eigen::Vector2d &reference_point) const {
-    Eigen::Matrix<double, 3, 2> jac = evalJacobian(reference_point);
+  inline Eigen::Matrix<ptScalar, 3, 1> evalNormal(
+      const Eigen::Matrix<ptScalar, 2, 1> &reference_point) const {
+    Eigen::Matrix<ptScalar, 3, 2> jac = evalJacobian(reference_point);
     return jac.col(0).cross(jac.col(1));
   }
 
   // Wrapper for legacy code
-  inline Eigen::Vector3d eval(double x, double y) const {
-    return eval(Eigen::Vector2d(x, y));
+  inline Eigen::Matrix<ptScalar, 3, 1> eval(ptScalar x, ptScalar y) const {
+    return eval(Eigen::Matrix<ptScalar, 2, 1>(x, y));
   }
-  inline Eigen::Matrix<double, 3, 2> evalJacobian(double x, double y) const {
-    return evalJacobian(Eigen::Vector2d(x, y));
+  inline Eigen::Matrix<ptScalar, 3, 2> evalJacobian(ptScalar x, ptScalar y) const {
+    return evalJacobian(Eigen::Matrix<ptScalar, 2, 1>(x, y));
   }
-  inline Eigen::Matrix<double, 3, 1> evalNormal(double x, double y) const {
-    return evalNormal(Eigen::Vector2d(x, y));
+  inline Eigen::Matrix<ptScalar, 3, 1> evalNormal(ptScalar x, ptScalar y) const {
+    return evalNormal(Eigen::Matrix<ptScalar, 2, 1>(x, y));
   }
 
   // This is a combination of eval und evalJacobian, to avoid duplication of
   // work. See SurfacePoint.hpp
-  void updateSurfacePoint(Eigen::Matrix<double, 12, 1> *srf_pt,
-                          const Eigen::Vector2d &ref_pt, double w,
-                          const Eigen::Vector2d &xi) const {
+  void updateSurfacePoint(Eigen::Matrix<ptScalar, 12, 1> *srf_pt,
+                          const Eigen::Matrix<ptScalar, 2, 1> &ref_pt, ptScalar w,
+                          const Eigen::Matrix<ptScalar, 2, 1> &xi) const {
     const int x_location =
         Spl::FindLocationInKnotVector(ref_pt(0), unique_knots_x_);
     const int y_location =
         Spl::FindLocationInKnotVector(ref_pt(1), unique_knots_y_);
     const int numy = (unique_knots_y_.size() - 1) * polynomial_degree_y_;
-    const double scaledx = Spl::Rescale(ref_pt(0), unique_knots_x_[x_location],
+    const ptScalar scaledx = Spl::Rescale(ref_pt(0), unique_knots_x_[x_location],
                                         unique_knots_x_[x_location + 1]);
-    const double scaledy = Spl::Rescale(ref_pt(1), unique_knots_y_[y_location],
+    const ptScalar scaledy = Spl::Rescale(ref_pt(1), unique_knots_y_[y_location],
                                         unique_knots_y_[y_location + 1]);
 
-    double *buffer =
-        new double[2 * (polynomial_degree_x_ + polynomial_degree_y_) + 12];
+    ptScalar *buffer =
+        new ptScalar[2 * (polynomial_degree_x_ + polynomial_degree_y_) + 12];
     for (int i = 0; i < 12; ++i) buffer[i] = 0;
 
-    double *tmp = buffer;
-    double *tmpDx = tmp + 4;
-    double *tmpDy = tmpDx + 4;
-    double *xbasis = tmpDy + 4;
-    double *ybasis = xbasis + polynomial_degree_x_;
-    double *xbasisD = ybasis + polynomial_degree_y_;
-    double *ybasisD = xbasisD + polynomial_degree_x_;
+    ptScalar *tmp = buffer;
+    ptScalar *tmpDx = tmp + 4;
+    ptScalar *tmpDy = tmpDx + 4;
+    ptScalar *xbasis = tmpDy + 4;
+    ptScalar *ybasis = xbasis + polynomial_degree_x_;
+    ptScalar *xbasisD = ybasis + polynomial_degree_y_;
+    ptScalar *ybasisD = xbasisD + polynomial_degree_x_;
 
-    Bembel::Basis::ShapeFunctionHandler::evalBasis(polynomial_degree_x_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalBasis(polynomial_degree_x_ - 1,
                                                    xbasis, scaledx);
-    Bembel::Basis::ShapeFunctionHandler::evalBasis(polynomial_degree_y_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalBasis(polynomial_degree_y_ - 1,
                                                    ybasis, scaledy);
-    Bembel::Basis::ShapeFunctionHandler::evalDerBasis(polynomial_degree_x_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalDerBasis(polynomial_degree_x_ - 1,
                                                       xbasisD, scaledx);
-    Bembel::Basis::ShapeFunctionHandler::evalDerBasis(polynomial_degree_y_ - 1,
+    Bembel::Basis::ShapeFunctionHandler<ptScalar>::evalDerBasis(polynomial_degree_y_ - 1,
                                                       ybasisD, scaledy);
 
     for (int i = 0; i < polynomial_degree_x_; ++i) {
       for (int j = 0; j < polynomial_degree_y_; ++j) {
-        const double tpbasisval = xbasis[i] * ybasis[j];
-        const double tpbasisvalDx = xbasisD[i] * ybasis[j];
-        const double tpbasisvalDy = xbasis[i] * ybasisD[j];
+        const ptScalar tpbasisval = xbasis[i] * ybasis[j];
+        const ptScalar tpbasisvalDx = xbasisD[i] * ybasis[j];
+        const ptScalar tpbasisvalDy = xbasis[i] * ybasisD[j];
         const int accs = 4 * (numy * (polynomial_degree_x_ * x_location + i) +
                               polynomial_degree_y_ * y_location + j);
 
@@ -258,8 +259,8 @@ class Patch {
       }
     }
 
-    const double bot = 1. / tmp[3];
-    const double botsqr = bot * bot;
+    const ptScalar bot = 1. / tmp[3];
+    const ptScalar botsqr = bot * bot;
 
     (*srf_pt)(0) = xi(0);
     (*srf_pt)(1) = xi(1);
@@ -281,16 +282,17 @@ class Patch {
   /// getter
   //////////////////////////////////////////////////////////////////////////////
 
-  std::vector<double> data_;  // Controllpoints in Bezier-Extracted Format.
+  std::vector<ptScalar> data_;  // Controllpoints in Bezier-Extracted Format.
   int polynomial_degree_x_;   // Degree in x
   int polynomial_degree_y_;   // Degree in y
-  std::vector<double>
+  std::vector<ptScalar>
       unique_knots_x_;  // The knot vectors, where each knot is unique
-  std::vector<double>
+  std::vector<ptScalar>
       unique_knots_y_;  // The knot vectors, where each knot is unique
 };
 
-inline std::vector<Patch> PatchShredder(const Patch &patch) noexcept {
+template <typename ptScalar>
+inline std::vector<Patch<ptScalar>> PatchShredder(const Patch<ptScalar> &patch) noexcept {
   // Already a Bezier patch
   if (patch.unique_knots_y_.size() == 2 && patch.unique_knots_x_.size() == 2) {
     return {patch};
@@ -304,7 +306,7 @@ inline std::vector<Patch> PatchShredder(const Patch &patch) noexcept {
   const int yp = patch.polynomial_degree_y_;
   const int numy = ychips * yp;
 
-  std::vector<Patch> out(xchips * ychips);
+  std::vector<Patch<ptScalar>> out(xchips * ychips);
 
   for (int ix = 0; ix < xchips; ix++) {
     for (int iy = 0; iy < ychips; iy++) {
@@ -336,13 +338,14 @@ inline std::vector<Patch> PatchShredder(const Patch &patch) noexcept {
 }
 
 // Shredds a whole vector of Patches
-inline std::vector<Patch> PatchShredder(
-    const std::vector<Patch> &patches) noexcept {
-  std::vector<Patch> out;
+template <typename ptScalar>
+inline std::vector<Patch<ptScalar>> PatchShredder(
+    const std::vector<Patch<ptScalar>> &patches) noexcept {
+  std::vector<Patch<ptScalar>> out;
   const int input_size = patches.size();
 
   for (int i = 0; i < input_size; i++) {
-    std::vector<Patch> tmp = PatchShredder(patches[i]);
+    std::vector<Patch<ptScalar>> tmp = PatchShredder(patches[i]);
 
     const int tmp_size = tmp.size();
 

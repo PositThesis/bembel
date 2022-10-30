@@ -18,16 +18,16 @@ namespace DuffyTrick {
  *    \todo  be sure that map2element computes the weight h*Q.w(i) such that
  *           the integrand may then be scaled by qp1.weight * qp2.weight
  **/
-template <typename Derived, class T>
-void integrate1(const LinearOperatorBase<Derived> &LinOp, const T &super_space,
-                const ElementTreeNode &e1, int rot1, const ElementTreeNode &e2,
-                int rot2, const Eigen::MatrixXd &ffield_qnodes,
-                const Cubature &Q,
+template <typename Derived, class T, typename ptScalar>
+void integrate1(const LinearOperatorBase<Derived, ptScalar> &LinOp, const T &super_space,
+                const ElementTreeNode<ptScalar> &e1, int rot1, const ElementTreeNode<ptScalar> &e2,
+                int rot2, const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &ffield_qnodes,
+                const Cubature<ptScalar> &Q,
                 Eigen::Matrix<typename LinearOperatorTraits<Derived>::Scalar,
                               Eigen::Dynamic, Eigen::Dynamic> *intval) {
-  double h = e1.get_h();
+  ptScalar h = e1.get_h();
   intval->setZero();
-  SurfacePoint qp1, qp2;
+  SurfacePoint<ptScalar> qp1, qp2;
   for (auto i = 0; i < Q.w_.size(); ++i) {
     super_space.map2surface(e1, Q.xi_.col(i), h * Q.w_(i), &qp1);
     for (auto j = 0; j < Q.w_.size(); ++j) {

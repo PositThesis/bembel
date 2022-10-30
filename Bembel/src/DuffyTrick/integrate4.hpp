@@ -21,25 +21,25 @@ namespace DuffyTrick {
  *           Information that map2element has to provide:
  *           xi; w; Chi(xi); dChidx(xi); dChidy(xi);
  **/
-template <typename Derived, class T>
-void integrate4(const LinearOperatorBase<Derived> &LinOp, const T &super_space,
-                const ElementTreeNode &e1, int rot1, const ElementTreeNode &e2,
-                int rot2, const Eigen::MatrixXd &ffield_qnodes,
-                const Cubature &Q,
+template <typename Derived, class T, typename ptScalar>
+void integrate4(const LinearOperatorBase<Derived, ptScalar> &LinOp, const T &super_space,
+                const ElementTreeNode<ptScalar> &e1, int rot1, const ElementTreeNode<ptScalar> &e2,
+                int rot2, const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &ffield_qnodes,
+                const Cubature<ptScalar> &Q,
                 Eigen::Matrix<typename LinearOperatorTraits<Derived>::Scalar,
                               Eigen::Dynamic, Eigen::Dynamic> *intval) {
   intval->setZero();
-  double h = e1.get_h();
-  double t1 = 0;
-  double t2 = 0;
-  double t3 = 0;
-  double t4 = 0;
-  SurfacePoint qp1, qp2, qp3, qp4, qp5, qp6;
-  Eigen::Vector2d pt1;
+  ptScalar h = e1.get_h();
+  ptScalar t1 = 0;
+  ptScalar t2 = 0;
+  ptScalar t3 = 0;
+  ptScalar t4 = 0;
+  SurfacePoint<ptScalar> qp1, qp2, qp3, qp4, qp5, qp6;
+  Eigen::Matrix<ptScalar, 2, 1> pt1;
   // llc of the element wrt [0,1]^2
   for (auto i = 0; i < Q.w_.size(); ++i) {
-    Eigen::Vector2d xi = Q.xi_.col(i);
-    double w = h * h * Q.w_(i) * std::pow(xi(0), 3.);
+    Eigen::Matrix<ptScalar, 2, 1> xi = Q.xi_.col(i);
+    ptScalar w = h * h * Q.w_(i) * std::pow(xi(0), ptScalar(3.));
     xi(1) *= xi(0);
     super_space.map2surface(e1, tau(xi(0), xi(1), rot1), w, &qp1);
     super_space.map2surface(e1, tau(xi(1), xi(0), rot1), w, &qp2);

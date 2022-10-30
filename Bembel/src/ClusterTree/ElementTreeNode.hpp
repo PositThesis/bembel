@@ -15,6 +15,7 @@ namespace Bembel {
  *  \ingroup ClusterTree
  *  \brief The ElementTreeNode correposnds to an element in the element tree.
  */
+template <typename ptScalar>
 class ElementTreeNode {
  public:
   //
@@ -67,7 +68,7 @@ class ElementTreeNode {
         id_(-1),
         level_(-1),
         patch_(-1),
-        radius_(std::numeric_limits<double>::infinity()) {
+        radius_(std::numeric_limits<ptScalar>::infinity()) {
     midpoint_ << 0., 0., 0.;
     llc_ << 0., 0.;
   }
@@ -109,19 +110,19 @@ class ElementTreeNode {
     return;
   }
   //////////////////////////////////////////////////////////////////////////////
-  Eigen::Vector2d mapToReferenceElement(const Eigen::Vector2d &in) const {
-    Eigen::Vector2d out = (in - llc_) / get_h();
+  Eigen::Matrix<ptScalar, 2, 1> mapToReferenceElement(const Eigen::Matrix<ptScalar, 2, 1> &in) const {
+    Eigen::Matrix<ptScalar, 2, 1> out = (in - llc_) / get_h();
     assert(out(0) >= 0. && out(0) <= 1. && out(1) >= 0. && out(1) <= 1.);
     return out;
   }
   //////////////////////////////////////////////////////////////////////////////
-  Eigen::Vector2d referenceMidpoint() const {
-    return llc_ + Eigen::Vector2d(0.5, 0.5) * get_h();
+  Eigen::Matrix<ptScalar, 2, 1> referenceMidpoint() const {
+    return llc_ + Eigen::Matrix<ptScalar, 2, 1>(0.5, 0.5) * get_h();
   }
   //////////////////////////////////////////////////////////////////////////////
   /// getter
   //////////////////////////////////////////////////////////////////////////////
-  double get_h() const { return double(1) / double(1 << level_); }
+  ptScalar get_h() const { return ptScalar(1) / ptScalar(1 << level_); }
   //////////////////////////////////////////////////////////////////////////////
   int get_level() const { return level_; }
   //////////////////////////////////////////////////////////////////////////////
@@ -157,11 +158,11 @@ class ElementTreeNode {
   std::vector<ElementTreeNode> sons_;        /// children
   std::vector<ElementTreeNode *> adjcents_;  /// neighbouring elements indices
   std::vector<int> vertices_;                /// indices of the vertices
-  Eigen::Vector3d midpoint_;                 /// midpoint of the element
-  Eigen::Vector2d llc_;                      /// lower left corner on [0,1]^2
+  Eigen::Matrix<ptScalar, 3, 1> midpoint_;                 /// midpoint of the element
+  Eigen::Matrix<ptScalar, 2, 1> llc_;                      /// lower left corner on [0,1]^2
   ElementTreeNode *prev_;
   ElementTreeNode *next_;
-  double radius_;  /// radius of the element
+  ptScalar radius_;  /// radius of the element
   int id_;         /// element id with respect to the level
   int level_;      /// level of the element
   int patch_;      /// patch of the element

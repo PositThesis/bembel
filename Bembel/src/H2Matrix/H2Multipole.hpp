@@ -14,18 +14,19 @@ namespace H2Multipole {
  *  \ingroup H2Matrix
  *  \brief  Computes the number_of_points Chebychev points.
  */
+template <typename ptScalar>
 struct ChebychevRoots {
   ChebychevRoots() {}
   ChebychevRoots(int number_of_points) {
     init_ChebyshevRoots(number_of_points);
   }
   void init_ChebyshevRoots(int n_pts) {
-    auto grid_pts = Eigen::ArrayXd::LinSpaced(n_pts, 1, n_pts).reverse();
-    double alpha = BEMBEL_PI / (2. * double(n_pts));
+    auto grid_pts = Eigen::Array<ptScalar, Eigen::Dynamic, 1>::LinSpaced(n_pts, 1, n_pts).reverse();
+    ptScalar alpha = BEMBEL_PI / (2. * ptScalar(n_pts));
     points_ = 0.5 * (alpha * (2 * grid_pts - 1)).cos() + 0.5;
     return;
   }
-  Eigen::VectorXd points_;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> points_;
 };
 /**
  *  \ingroup H2Matrix
@@ -33,11 +34,11 @@ struct ChebychevRoots {
  *         points given by the InterpolationPoints struct wrt.
  *         Newton basis
  **/
-template <typename InterpolationPoints>
-Eigen::MatrixXd computeLagrangePolynomials(int number_of_points) {
-  Eigen::MatrixXd retval =
-      Eigen::MatrixXd::Identity(number_of_points, number_of_points);
-  Eigen::VectorXd x = InterpolationPoints(number_of_points).points_;
+template <typename InterpolationPoints, typename ptScalar>
+Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> computeLagrangePolynomials(int number_of_points) {
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> retval =
+      Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>::Identity(number_of_points, number_of_points);
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> x = InterpolationPoints(number_of_points).points_;
   for (auto i = 0; i < number_of_points; ++i)
     for (auto j = 1; j < number_of_points; ++j)
       for (auto k = number_of_points - 1; k >= j; --k)
@@ -49,11 +50,11 @@ Eigen::MatrixXd computeLagrangePolynomials(int number_of_points) {
  *  \brief evaluates a given polynomial in the Newton basis wrt the
  *         interpolation points at a given location
  **/
-template <typename InterpolationPoints>
-double evaluatePolynomial(const Eigen::VectorXd &L, double xi) {
+template <typename InterpolationPoints, typename ptScalar>
+ptScalar evaluatePolynomial(const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &L, ptScalar xi) {
   int number_of_points = L.size();
-  Eigen::VectorXd x = InterpolationPoints(number_of_points).points_;
-  double retval = 0;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> x = InterpolationPoints(number_of_points).points_;
+  ptScalar retval = 0;
 
   retval = L(number_of_points - 1);
 
@@ -70,15 +71,15 @@ double evaluatePolynomial(const Eigen::VectorXd &L, double xi) {
  *
  *
  */
-template <typename InterpolationPoints>
-Eigen::MatrixXd computeTransferMatrices(int number_of_points) {
+template <typename InterpolationPoints, typename ptScalar>
+Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> computeTransferMatrices(int number_of_points) {
   int np2 = number_of_points * number_of_points;
-  Eigen::MatrixXd E(number_of_points, 2 * number_of_points);
-  Eigen::MatrixXd T(np2, 4 * np2);
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> E(number_of_points, 2 * number_of_points);
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> T(np2, 4 * np2);
   /// initialize Lagrange polynomials and interpolation nodes
-  Eigen::VectorXd x = InterpolationPoints(number_of_points).points_;
-  Eigen::MatrixXd L =
-      computeLagrangePolynomials<InterpolationPoints>(number_of_points);
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> x = InterpolationPoints(number_of_points).points_;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> L =
+      computeLagrangePolynomials<InterpolationPoints, ptScalar>(number_of_points);
   /**
    * initialize values of Lagrange functions on the interpolation points
    * as follows:
@@ -90,9 +91,9 @@ Eigen::MatrixXd computeTransferMatrices(int number_of_points) {
    **/
   for (auto j = 0; j < number_of_points; ++j)
     for (auto i = 0; i < number_of_points; ++i) {
-      E(i, j) = evaluatePolynomial<InterpolationPoints>(L.col(j), 0.5 * x(i));
+      E(i, j) = evaluatePolynomial<InterpolationPoints, ptScalar>(L.col(j), 0.5 * x(i));
       E(i, j + number_of_points) =
-          evaluatePolynomial<InterpolationPoints>(L.col(j), 0.5 * x(i) + 0.5);
+          evaluatePolynomial<InterpolationPoints, ptScalar>(L.col(j), 0.5 * x(i) + 0.5);
     }
   // This construction, regard permuation vector, results in the
   // order T0 T2 T3 T1 to apply to the moments
@@ -114,29 +115,29 @@ Eigen::MatrixXd computeTransferMatrices(int number_of_points) {
  *  \ingroup H2Matrix
  *  \brief Computes 1D moment for FMM. All calculations ar performed on [0,1]
  */
-template <typename InterpolationPoints, typename LinOp>
+template <typename InterpolationPoints, typename LinOp, typename ptScalar>
 struct Moment1D {
-  static Eigen::MatrixXd computeMoment1D(const SuperSpace<LinOp> &super_space,
+  static Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> computeMoment1D(const SuperSpace<LinOp, ptScalar> &super_space,
                                          const int cluster_level,
                                          const int cluster_refinements,
                                          const int number_of_points) {
     int n = 1 << cluster_refinements;
-    double h = 1. / n;
+    ptScalar h = 1. / n;
     int N = 1 << cluster_level;
-    double H = 1. / N;
+    ptScalar H = 1. / N;
     int polynomial_degree = super_space.get_polynomial_degree();
     int polynomial_degree_plus_one = polynomial_degree + 1;
     int polynomial_degree_plus_one_squared =
         polynomial_degree_plus_one * polynomial_degree_plus_one;
-    GaussLegendre<Constants::maximum_quadrature_degree> GL;
+    GaussLegendre<Constants::maximum_quadrature_degree, ptScalar> GL;
     auto Q =
         GL[(int)std::ceil(0.5 * (number_of_points + polynomial_degree - 2))];
 
-    Eigen::VectorXd x = InterpolationPoints(number_of_points).points_;
-    Eigen::MatrixXd L =
-        computeLagrangePolynomials<InterpolationPoints>(number_of_points);
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> x = InterpolationPoints(number_of_points).points_;
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> L =
+        computeLagrangePolynomials<InterpolationPoints, ptScalar>(number_of_points);
 
-    Eigen::MatrixXd moment(number_of_points, n * polynomial_degree_plus_one);
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> moment(number_of_points, n * polynomial_degree_plus_one);
 
     for (auto i = 0; i < number_of_points; ++i) {
       Eigen::Matrix<typename LinearOperatorTraits<LinOp>::Scalar,
@@ -148,7 +149,7 @@ struct Moment1D {
           super_space.addScaledBasis1D(
               &intval,
               Q.w_(k) * std::sqrt(h * H) *
-                  evaluatePolynomial<InterpolationPoints>(L.col(i),
+                  evaluatePolynomial<InterpolationPoints, ptScalar>(L.col(i),
                                                           h * (j + Q.xi_(k))),
               Q.xi_(k));
         }
@@ -166,29 +167,29 @@ struct Moment1D {
  *  \brief Computes 1D moment for FMM using derivatives of the basis functions.
  * All calculations ar performed on [0,1].
  */
-template <typename InterpolationPoints, typename LinOp>
+template <typename InterpolationPoints, typename LinOp, typename ptScalar>
 struct Moment1DDerivative {
-  static Eigen::MatrixXd computeMoment1D(const SuperSpace<LinOp> &super_space,
+  static Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> computeMoment1D(const SuperSpace<LinOp, ptScalar> &super_space,
                                          const int cluster_level,
                                          const int cluster_refinements,
                                          const int number_of_points) {
     int n = 1 << cluster_refinements;
-    double h = 1. / n;
+    ptScalar h = 1. / n;
     int N = 1 << cluster_level;
-    double H = 1. / N;
+    ptScalar H = 1. / N;
     int polynomial_degree = super_space.get_polynomial_degree();
     int polynomial_degree_plus_one = polynomial_degree + 1;
     int polynomial_degree_plus_one_squared =
         polynomial_degree_plus_one * polynomial_degree_plus_one;
-    GaussLegendre<Constants::maximum_quadrature_degree> GL;
+    GaussLegendre<Constants::maximum_quadrature_degree, ptScalar> GL;
     auto Q =
         GL[(int)std::ceil(0.5 * (number_of_points + polynomial_degree - 2))];
 
-    Eigen::VectorXd x = InterpolationPoints(number_of_points).points_;
-    Eigen::MatrixXd L =
-        computeLagrangePolynomials<InterpolationPoints>(number_of_points);
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> x = InterpolationPoints(number_of_points).points_;
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> L =
+        computeLagrangePolynomials<InterpolationPoints, ptScalar>(number_of_points);
 
-    Eigen::MatrixXd moment(number_of_points, n * polynomial_degree_plus_one);
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> moment(number_of_points, n * polynomial_degree_plus_one);
 
     for (auto i = 0; i < number_of_points; ++i) {
       Eigen::Matrix<typename LinearOperatorTraits<LinOp>::Scalar,
@@ -200,7 +201,7 @@ struct Moment1DDerivative {
           super_space.addScaledBasis1DDx(
               &intval,
               Q.w_(k) / std::sqrt(h * H) *
-                  evaluatePolynomial<InterpolationPoints>(L.col(i),
+                  evaluatePolynomial<InterpolationPoints, ptScalar>(L.col(i),
                                                           h * (j + Q.xi_(k))),
               Q.xi_(k));
         }
@@ -218,8 +219,8 @@ struct Moment1DDerivative {
  * \brief Computes a single 2D moment for the FMM by tensorisation of the 1D
  * moments
  */
-template <typename Mom1D_1, typename Mom1D_2, typename LinOp>
-Eigen::MatrixXd moment2DComputer(const SuperSpace<LinOp> &super_space,
+template <typename Mom1D_1, typename Mom1D_2, typename LinOp, typename ptScalar>
+Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> moment2DComputer(const SuperSpace<LinOp, ptScalar> &super_space,
                                  const int cluster_level,
                                  const int cluster_refinements,
                                  const int number_of_points) {
@@ -231,9 +232,9 @@ Eigen::MatrixXd moment2DComputer(const SuperSpace<LinOp> &super_space,
       polynomial_degree_plus_one * polynomial_degree_plus_one;
 
   // compute 1D moments
-  Eigen::MatrixXd moment1D_1 = Mom1D_1::computeMoment1D(
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> moment1D_1 = Mom1D_1::computeMoment1D(
       super_space, cluster_level, cluster_refinements, number_of_points);
-  Eigen::MatrixXd moment1D_2 = Mom1D_2::computeMoment1D(
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> moment1D_2 = Mom1D_2::computeMoment1D(
       super_space, cluster_level, cluster_refinements, number_of_points);
   /**
    *  Throughout this code we face the problem of memory serialisation for
@@ -273,7 +274,7 @@ Eigen::MatrixXd moment2DComputer(const SuperSpace<LinOp> &super_space,
   }
 
   // assemble 2D tensor-product moments
-  Eigen::MatrixXd moment2D(number_of_points * number_of_points,
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> moment2D(number_of_points * number_of_points,
                            moment1D_1.cols() * moment1D_2.cols());
   for (auto i = 0; i < number_of_points; ++i)
     for (auto j = 0; j < number_of_points; ++j)
@@ -295,19 +296,19 @@ Eigen::MatrixXd moment2DComputer(const SuperSpace<LinOp> &super_space,
  * your local shape functions. See e.g. MaxwellSingleLayerOperator for an
  * example.
  */
-template <typename InterpolationPoints, typename LinOp>
+template <typename InterpolationPoints, typename LinOp, typename ptScalar>
 struct Moment2D {
-  static std::vector<Eigen::MatrixXd> compute2DMoment(
-      const SuperSpace<LinOp> &super_space, const int cluster_level,
+  static std::vector<Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>> compute2DMoment(
+      const SuperSpace<LinOp, ptScalar> &super_space, const int cluster_level,
       const int cluster_refinements, const int number_of_points) {
-    std::vector<Eigen::MatrixXd> vector_of_moments;
+    std::vector<Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>> vector_of_moments;
     for (int i = 0;
          i <
          getFunctionSpaceVectorDimension<LinearOperatorTraits<LinOp>::Form>();
          ++i)
       vector_of_moments.push_back(
-          moment2DComputer<Moment1D<InterpolationPoints, LinOp>,
-                           Moment1D<InterpolationPoints, LinOp>>(
+          moment2DComputer<Moment1D<InterpolationPoints, LinOp, ptScalar>,
+                           Moment1D<InterpolationPoints, LinOp, ptScalar>, LinOp, ptScalar>(
               super_space, cluster_level, cluster_refinements,
               number_of_points));
     return vector_of_moments;
@@ -318,11 +319,12 @@ struct Moment2D {
  * \brief Compute tensor interpolation points on unit square from 1D
  * interpolation points.
  */
-Eigen::MatrixXd interpolationPoints2D(const Eigen::VectorXd &x) {
-  Eigen::MatrixXd x2(x.size() * x.size(), 2);
+template <typename ptScalar>
+Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> interpolationPoints2D(const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &x) {
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> x2(x.size() * x.size(), 2);
   for (auto i = 0; i < x.size(); ++i)
     for (auto j = 0; j < x.size(); ++j) {
-      x2.row(i * x.size() + j) = Eigen::Vector2d(x(i), x(j));
+      x2.row(i * x.size() + j) = Eigen::Matrix<ptScalar, 2, 1>(x(i), x(j));
     }
   return x2;
 }
@@ -330,14 +332,14 @@ Eigen::MatrixXd interpolationPoints2D(const Eigen::VectorXd &x) {
  * \ingroup H2Matrix
  * \brief Interpolate kernel function on reference domain for FMM.
  */
-template <typename LinOp>
+template <typename LinOp, typename ptScalar>
 Eigen::Matrix<typename LinearOperatorTraits<LinOp>::Scalar, Eigen::Dynamic,
               Eigen::Dynamic>
-interpolateKernel(const LinOp &linOp, const SuperSpace<LinOp> &super_space,
-                  const Eigen::MatrixXd &x,
-                  const Bembel::ElementTreeNode &cluster1,
-                  const Bembel::ElementTreeNode &cluster2) {
-  SurfacePoint qp1, qp2;
+interpolateKernel(const LinOp &linOp, const SuperSpace<LinOp, ptScalar> &super_space,
+                  const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &x,
+                  const Bembel::ElementTreeNode<ptScalar> &cluster1,
+                  const Bembel::ElementTreeNode<ptScalar> &cluster2) {
+  SurfacePoint<ptScalar> qp1, qp2;
   Eigen::Matrix<
       typename LinearOperatorTraits<LinOp>::Scalar,
       getFunctionSpaceVectorDimension<LinearOperatorTraits<LinOp>::Form>() *
@@ -374,10 +376,10 @@ interpolateKernel(const LinOp &linOp, const SuperSpace<LinOp> &super_space,
  * \ingroup H2Matrix
  * \brief Forward transformation for FMM.
  */
-template <typename Scalar>
+template <typename Scalar, typename ptScalar>
 std::vector<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>>
-forwardTransformation(const Eigen::MatrixXd &moment_matrices,
-                      const Eigen::MatrixXd &transfer_matrices, const int steps,
+forwardTransformation(const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &moment_matrices,
+                      const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &transfer_matrices, const int steps,
                       const Eigen::Matrix<Scalar, Eigen::Dynamic,
                                           Eigen::Dynamic> &long_rhs_matrix) {
   // get numbers
@@ -422,10 +424,10 @@ forwardTransformation(const Eigen::MatrixXd &moment_matrices,
  * \brief Backward transformation for FMM. The content of long_dst_backward is
  * destroyed.
  */
-template <typename Scalar>
+template <typename Scalar, typename ptScalar>
 Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> backwardTransformation(
-    const Eigen::MatrixXd &moment_matrices,
-    const Eigen::MatrixXd &transfer_matrices, const int steps,
+    const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &moment_matrices,
+    const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &transfer_matrices, const int steps,
     std::vector<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>>
         &long_dst_backward) {
   // get numbers

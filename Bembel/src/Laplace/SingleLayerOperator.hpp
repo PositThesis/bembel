@@ -12,12 +12,14 @@
 namespace Bembel {
 // forward declaration of class LaplaceSingleLayerOperator in order to define
 // traits
+
+template<typename ptScalar>
 class LaplaceSingleLayerOperator;
 
-template <>
-struct LinearOperatorTraits<LaplaceSingleLayerOperator> {
-  typedef Eigen::VectorXd EigenType;
-  typedef Eigen::VectorXd::Scalar Scalar;
+template<typename ptScalar>
+struct LinearOperatorTraits<LaplaceSingleLayerOperator<ptScalar>> {
+  using EigenType = typename Eigen::Matrix<ptScalar, Eigen::Dynamic, 1>;
+  using Scalar = typename Eigen::Matrix<ptScalar, Eigen::Dynamic, 1>::Scalar;
   enum {
     OperatorOrder = -1,
     Form = DifferentialForm::Discontinuous,
@@ -28,37 +30,38 @@ struct LinearOperatorTraits<LaplaceSingleLayerOperator> {
 /**
  * \ingroup Laplace
  */
+template<typename ptScalar>
 class LaplaceSingleLayerOperator
-    : public LinearOperatorBase<LaplaceSingleLayerOperator> {
+    : public LinearOperatorBase<LaplaceSingleLayerOperator<ptScalar>, ptScalar> {
   // implementation of the kernel evaluation, which may be based on the
   // information available from the superSpace
  public:
   LaplaceSingleLayerOperator() {}
   template <class T>
   void evaluateIntegrand_impl(
-      const T &super_space, const SurfacePoint &p1, const SurfacePoint &p2,
+      const T &super_space, const SurfacePoint<ptScalar> &p1, const SurfacePoint<ptScalar> &p2,
       Eigen::Matrix<
-          typename LinearOperatorTraits<LaplaceSingleLayerOperator>::Scalar,
+          typename LinearOperatorTraits<LaplaceSingleLayerOperator<ptScalar>>::Scalar,
           Eigen::Dynamic, Eigen::Dynamic> *intval) const {
     auto polynomial_degree = super_space.get_polynomial_degree();
     auto polynomial_degree_plus_one_squared =
         (polynomial_degree + 1) * (polynomial_degree + 1);
 
     // get evaluation points on unit square
-    auto s = p1.segment<2>(0);
-    auto t = p2.segment<2>(0);
+    Eigen::Matrix<ptScalar, 2, 1> s = p1.segment(0, 2);
+    Eigen::Matrix<ptScalar, 2, 1> t = p2.segment(0, 2);
 
     // get quadrature weights
     auto ws = p1(2);
     auto wt = p2(2);
 
     // get points on geometry and tangential derivatives
-    auto x_f = p1.segment<3>(3);
-    auto x_f_dx = p1.segment<3>(6);
-    auto x_f_dy = p1.segment<3>(9);
-    auto y_f = p2.segment<3>(3);
-    auto y_f_dx = p2.segment<3>(6);
-    auto y_f_dy = p2.segment<3>(9);
+    Eigen::Matrix<ptScalar, 3, 1> x_f = p1.segment(3, 3);
+    Eigen::Matrix<ptScalar, 3, 1> x_f_dx = p1.segment(6, 3);
+    Eigen::Matrix<ptScalar, 3, 1> x_f_dy = p1.segment(9, 3);
+    Eigen::Matrix<ptScalar, 3, 1> y_f = p2.segment(3, 3);
+    Eigen::Matrix<ptScalar, 3, 1> y_f_dx = p2.segment(6, 3);
+    Eigen::Matrix<ptScalar, 3, 1> y_f_dy = p2.segment(9, 3);
 
     // compute surface measures from tangential derivatives
     auto x_kappa = x_f_dx.cross(x_f_dy).norm();
@@ -76,26 +79,26 @@ class LaplaceSingleLayerOperator
     return;
   }
 
-  Eigen::Matrix<double, 1, 1> evaluateFMMInterpolation_impl(
-      const SurfacePoint &p1, const SurfacePoint &p2) const {
+  Eigen::Matrix<ptScalar, 1, 1> evaluateFMMInterpolation_impl(
+      const SurfacePoint<ptScalar> &p1, const SurfacePoint<ptScalar> &p2) const {
     // get evaluation points on unit square
-    auto s = p1.segment<2>(0);
-    auto t = p2.segment<2>(0);
+    Eigen::Matrix<ptScalar, 2, 1> s = p1.segment(0, 2);
+    Eigen::Matrix<ptScalar, 2, 1> t = p2.segment(0, 2);
 
     // get points on geometry and tangential derivatives
-    auto x_f = p1.segment<3>(3);
-    auto x_f_dx = p1.segment<3>(6);
-    auto x_f_dy = p1.segment<3>(9);
-    auto y_f = p2.segment<3>(3);
-    auto y_f_dx = p2.segment<3>(6);
-    auto y_f_dy = p2.segment<3>(9);
+    Eigen::Matrix<ptScalar, 3, 1> x_f = p1.segment(3, 3);
+    Eigen::Matrix<ptScalar, 3, 1> x_f_dx = p1.segment(6, 3);
+    Eigen::Matrix<ptScalar, 3, 1> x_f_dy = p1.segment(9, 3);
+    Eigen::Matrix<ptScalar, 3, 1> y_f = p2.segment(3, 3);
+    Eigen::Matrix<ptScalar, 3, 1> y_f_dx = p2.segment(6, 3);
+    Eigen::Matrix<ptScalar, 3, 1> y_f_dy = p2.segment(9, 3);
 
     // compute surface measures from tangential derivatives
     auto x_kappa = x_f_dx.cross(x_f_dy).norm();
     auto y_kappa = y_f_dx.cross(y_f_dy).norm();
 
     // interpolation
-    Eigen::Matrix<double, 1, 1> intval;
+    Eigen::Matrix<ptScalar, 1, 1> intval;
     intval(0) = evaluateKernel(x_f, y_f) * x_kappa * y_kappa;
 
     return intval;
@@ -104,9 +107,9 @@ class LaplaceSingleLayerOperator
   /**
    * \brief Fundamental solution of Laplace problem
    */
-  double evaluateKernel(const Eigen::Vector3d &x,
-                        const Eigen::Vector3d &y) const {
-    return 1. / 4. / BEMBEL_PI / (x - y).norm();
+  ptScalar evaluateKernel(const Eigen::Matrix<ptScalar, 3, 1> &x,
+                        const Eigen::Matrix<ptScalar, 3, 1> &y) const {
+    return ptScalar(1.) / ptScalar(4.) / ptScalar(BEMBEL_PI) / (x - y).norm();
   }
 };
 

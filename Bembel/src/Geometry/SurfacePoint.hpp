@@ -35,6 +35,7 @@
  * updateSurdacePoint method is specialized and should be used, since it avoids
  * redundant work.
  **/
-typedef Eigen::Matrix<double, 12, 1> SurfacePoint;
+template <typename ptScalar>
+using SurfacePoint = Eigen::Matrix<ptScalar, 12, 1>;
 
 #endif

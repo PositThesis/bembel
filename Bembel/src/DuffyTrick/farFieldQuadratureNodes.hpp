@@ -16,18 +16,18 @@ namespace DuffyTrick {
  *  \brief evaluates a given quadrature on all surface panels storage format
  *         is qNodes.col(k) = [xi, w, Chi(xi); dsChi(xi); dtChi(xi)]\in\Rbb^12
  **/
-template <class T>
-Eigen::Matrix<double, 12, Eigen::Dynamic> computeFfieldQnodes(
-    const T &super_space, const Cubature &Q) {
-  Eigen::Matrix<double, 12, Eigen::Dynamic> ffield_qnodes;
+template <class T, typename ptScalar>
+Eigen::Matrix<ptScalar, 12, Eigen::Dynamic> computeFfieldQnodes(
+    const T &super_space, const Cubature<ptScalar> &Q) {
+  Eigen::Matrix<ptScalar, 12, Eigen::Dynamic> ffield_qnodes;
   int next = 0;
   // assume isotropic mesh width h!
-  double h = (super_space.get_mesh().get_element_tree().cpbegin())->get_h();
+  ptScalar h = (super_space.get_mesh().get_element_tree().cpbegin())->get_h();
   auto nE = super_space.get_mesh().get_number_of_elements();
   auto pbegin = super_space.get_mesh().get_element_tree().cpbegin();
   auto pend = super_space.get_mesh().get_element_tree().cpend();
   ffield_qnodes.resize(12, nE * Q.xi_.cols());
-  SurfacePoint surfpt;
+  SurfacePoint<ptScalar> surfpt;
 
   for (auto it = pbegin; it != pend; ++it)
     for (auto k = 0; k < Q.xi_.cols(); ++k) {

@@ -17,8 +17,9 @@ namespace DuffyTrick {
  *         elements have to be rotated to move the similarity to the first
  *         vertices_ or edge
  **/
-Eigen::Vector3i compareElements(const ElementTreeNode &e1,
-                                const ElementTreeNode &e2, double *dist) {
+template <typename ptScalar>
+Eigen::Vector3i compareElements(const ElementTreeNode<ptScalar> &e1,
+                                const ElementTreeNode<ptScalar> &e2, ptScalar *dist) {
   Eigen::Vector3i retval;
   retval.setZero();
   // check if the two elements are identical and directly return;

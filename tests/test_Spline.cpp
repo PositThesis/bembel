@@ -17,14 +17,14 @@ int main() {
   for (int p = 0; p < 18; ++p) {
     for (auto x : Test::Constants::eq_points) {
       Eigen::VectorXd result1 = Eigen::VectorXd::Zero(p + 1);
-      Basis::BasisHandler<double>::phi(p, &result1, 1, x);
+      Basis::BasisHandler<double, double>::phi(p, &result1, 1, x);
 
       Eigen::VectorXd result2 = Eigen::VectorXd::Zero(p + 1);
       Eigen::MatrixXd coef = Eigen::VectorXd::Zero(p + 1).transpose();
       for (int i = 0; i < p + 1; ++i) {
         coef(i) = 1;
         std::vector<double> v = {x};
-        result2(i) = Spl::DeBoor(coef, Spl::MakeBezierKnotVector(p + 1), v)(0);
+        result2(i) = Spl::DeBoor(coef, Spl::MakeBezierKnotVector<double>(p + 1), v)(0);
         coef(i) = 0;
       }
       BEMBEL_TEST_IF((result1 - result2).norm() < Test::Constants::coefficient_accuracy);
@@ -35,7 +35,7 @@ int main() {
   for (int p = 1; p < 18; ++p) {
     for (auto x : Test::Constants::eq_points) {
       Eigen::VectorXd result1 = Eigen::VectorXd::Zero(p + 1);
-      Basis::BasisHandler<double>::phiDx(p, &result1, 1, x);
+      Basis::BasisHandler<double, double>::phiDx(p, &result1, 1, x);
 
       Eigen::VectorXd result2 = Eigen::VectorXd::Zero(p + 1);
       Eigen::MatrixXd coef = Eigen::VectorXd::Zero(p + 1).transpose();
@@ -43,7 +43,7 @@ int main() {
         coef(i) = 1;
         std::vector<double> v = {x};
         result2(i) =
-            Spl::DeBoorDer(coef, Spl::MakeBezierKnotVector(p + 1), v)(0);
+            Spl::DeBoorDer(coef, Spl::MakeBezierKnotVector<double>(p + 1), v)(0);
         coef(i) = 0;
       }
       BEMBEL_TEST_IF((result1 - result2).norm() < Test::Constants::coefficient_accuracy);

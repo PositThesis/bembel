@@ -12,19 +12,20 @@
 namespace Bembel {
 
 // This class provides the possibilty to generate a vtk-visualization.
+template <typename ptScalar>
 class VTKDomainExport {
  public:
     /**
   * \ingroup IO
   * \brief Provides export routines to the VTK file format.
   **/
-  VTKDomainExport(const Eigen::VectorXd &x_vec, const Eigen::VectorXd &y_vec,
-                  const Eigen::VectorXd &z_vec) {
+  VTKDomainExport(const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &x_vec, const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &y_vec,
+                  const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &z_vec) {
     init_VTKDomainExport(x_vec, y_vec, z_vec);
   }
-  inline void init_VTKDomainExport(const Eigen::VectorXd &x_vec,
-                                   const Eigen::VectorXd &y_vec,
-                                   const Eigen::VectorXd &z_vec) {
+  inline void init_VTKDomainExport(const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &x_vec,
+                                   const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &y_vec,
+                                   const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &z_vec) {
     x_vec_ = x_vec;
     y_vec_ = y_vec;
     z_vec_ = z_vec;
@@ -37,33 +38,33 @@ class VTKDomainExport {
   // One can add data to visualize via the addDataSet methods. They accept a
   // std::function object of different types, and generate the data needed for
   // the vtk file. Allowed formats are:
-  // std::function<double(Eigen::Vector3d)>
-  // std::function<Eigen::Vector3d(Eigen::Vector3d)>
+  // std::function<ptScalar(Eigen::Matrix<ptScalar, 3, 1>)>
+  // std::function<Eigen::Matrix<ptScalar, 3, 1>(Eigen::Matrix<ptScalar, 3, 1>)>
   inline void addDataSet(const std::string &name,
-                         std::function<double(const Eigen::Vector3d &)> fun) {
-    Eigen::MatrixXd data(max_size_, 1);
+                         std::function<ptScalar(const Eigen::Matrix<ptScalar, 3, 1> &)> fun) {
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> data(max_size_, 1);
     for (int z_idx = 0; z_idx < z_vec_.rows(); ++z_idx)
       for (int y_idx = 0; y_idx < y_vec_.rows(); ++y_idx)
         for (int x_idx = 0; x_idx < x_vec_.rows(); ++x_idx) {
           const unsigned long i = (x_vec_.rows() * y_vec_.rows() * z_idx) +
                                   (x_vec_.rows() * y_idx) + x_idx;
           data(i) =
-              fun(Eigen::Vector3d(x_vec_(x_idx), y_vec_(y_idx), z_vec_(z_idx)));
+              fun(Eigen::Matrix<ptScalar, 3, 1>(x_vec_(x_idx), y_vec_(y_idx), z_vec_(z_idx)));
         }
     addDataSet_(name, data);
     return;
   }
   inline void addDataSet(
       const std::string &name,
-      std::function<Eigen::Vector3d(const Eigen::Vector3d &)> fun) {
-    Eigen::MatrixXd data(max_size_, 3);
+      std::function<Eigen::Matrix<ptScalar, 3, 1>(const Eigen::Matrix<ptScalar, 3, 1> &)> fun) {
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> data(max_size_, 3);
     for (int z_idx = 0; z_idx < z_vec_.rows(); ++z_idx)
       for (int y_idx = 0; y_idx < y_vec_.rows(); ++y_idx)
         for (int x_idx = 0; x_idx < x_vec_.rows(); ++x_idx) {
           const unsigned long i = (x_vec_.rows() * y_vec_.rows() * z_idx) +
                                   (x_vec_.rows() * y_idx) + x_idx;
           data.row(i) =
-              fun(Eigen::Vector3d(x_vec_(x_idx), y_vec_(y_idx), z_vec_(z_idx)))
+              fun(Eigen::Matrix<ptScalar, 3, 1>(x_vec_(x_idx), y_vec_(y_idx), z_vec_(z_idx)))
                   .transpose();
         }
     addDataSet_(name, data);
@@ -109,7 +110,7 @@ class VTKDomainExport {
  private:
   // This routine turns the data of the above DataSet-routines into a string and
   // stores it.
-  inline void addDataSet_(const std::string &name, const Eigen::MatrixXd &mat) {
+  inline void addDataSet_(const std::string &name, const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &mat) {
     assert(mat.cols() == 1 || mat.cols() == 3);
 
     const int cols = mat.cols();
@@ -130,9 +131,9 @@ class VTKDomainExport {
   int x_num;
   int y_num;
   int z_num;
-  Eigen::VectorXd x_vec_;
-  Eigen::VectorXd y_vec_;
-  Eigen::VectorXd z_vec_;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> x_vec_;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> y_vec_;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> z_vec_;
   std::vector<std::string> additionalData;
 };
 

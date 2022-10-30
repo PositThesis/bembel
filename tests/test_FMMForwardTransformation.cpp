@@ -24,28 +24,28 @@ int main() {
 
   // generate geometry
   Test::TestGeometryWriter::writeScreen();
-  Geometry geometry("test_Screen.dat");
-  AnsatzSpace<DummyOperator> ansatz_space(geometry, refinement_level, 0);
+  Geometry<double> geometry("test_Screen.dat");
+  AnsatzSpace<DummyOperator<double>, double> ansatz_space(geometry, refinement_level, 0);
 
   // generate matrices
   MatrixXd fmm_transfer_matrices =
-      H2Multipole::computeTransferMatrices<H2Multipole::ChebychevRoots>(
+      H2Multipole::computeTransferMatrices<H2Multipole::ChebychevRoots<double>, double>(
           number_of_points);
   std::vector<MatrixXd> fmm_moment_matrix0 = H2Multipole::Moment2D<
-      Bembel::H2Multipole::ChebychevRoots,
-      DummyOperator>::compute2DMoment(ansatz_space.get_superspace(),
+      Bembel::H2Multipole::ChebychevRoots<double>,
+      DummyOperator<double>, double>::compute2DMoment(ansatz_space.get_superspace(),
                                       cluster_level,
                                       refinement_level - cluster_level,
                                       number_of_points);
   std::vector<MatrixXd> fmm_moment_matrix1 = H2Multipole::Moment2D<
-      Bembel::H2Multipole::ChebychevRoots,
-      DummyOperator>::compute2DMoment(ansatz_space.get_superspace(),
+      Bembel::H2Multipole::ChebychevRoots<double>,
+      DummyOperator<double>, double>::compute2DMoment(ansatz_space.get_superspace(),
                                       cluster_level - 1,
                                       refinement_level - cluster_level + 1,
                                       number_of_points);
   std::vector<MatrixXd> fmm_moment_matrix2 = H2Multipole::Moment2D<
-      Bembel::H2Multipole::ChebychevRoots,
-      DummyOperator>::compute2DMoment(ansatz_space.get_superspace(),
+      Bembel::H2Multipole::ChebychevRoots<double>,
+      DummyOperator<double>, double>::compute2DMoment(ansatz_space.get_superspace(),
                                       cluster_level - 2,
                                       refinement_level - cluster_level + 2,
                                       number_of_points);

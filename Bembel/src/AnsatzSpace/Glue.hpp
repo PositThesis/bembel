@@ -39,11 +39,11 @@ struct dofIdentification {
   int coef;
 };
 
-template <typename Derived, unsigned int DF>
+template <typename Derived, unsigned int DF, typename ptScalar>
 struct glue_identificationmaker_ {
   static std::vector<dofIdentification> makeIdentification(
       const std::vector<std::array<int, 4>> &edges_,
-      const SuperSpace<Derived> &superspace, const Projector<Derived> &proj) {
+      const SuperSpace<Derived, ptScalar> &superspace, const Projector<Derived, ptScalar> &proj) {
     assert(false && "Needs to be specialized");
     return {};
   }
@@ -56,40 +56,40 @@ struct glue_identificationmaker_ {
  * \brief This class takes care of identifying DOFs on different edges, which
  *must be identified with one another.
  **/
-template <typename Derived>
+template <typename Derived, typename ptScalar>
 class Glue {
   std::vector<std::array<int, 4>> edges_;
   int dofs_after_glue;
-  Eigen::SparseMatrix<double> glue_mat_;
+  Eigen::SparseMatrix<ptScalar> glue_mat_;
 
  public:
-  Glue(const SuperSpace<Derived> &superspace, const Projector<Derived> &proj) {
+  Glue(const SuperSpace<Derived, ptScalar> &superspace, const Projector<Derived, ptScalar> &proj) {
     init_Glue(superspace, proj);
   }
-  void init_Glue(const SuperSpace<Derived> &superspace,
-                 const Projector<Derived> &proj) {
+  void init_Glue(const SuperSpace<Derived, ptScalar> &superspace,
+                 const Projector<Derived, ptScalar> &proj) {
     edges_ = superspace.get_mesh().get_element_tree().patchTopologyInfo();
     glue_mat_ = assembleGlueMatrix(superspace, proj);
     return;
   }
 
-  Eigen::SparseMatrix<double> get_glue_matrix() const { return glue_mat_; }
+  Eigen::SparseMatrix<ptScalar> get_glue_matrix() const { return glue_mat_; }
 
   inline std::vector<GlueRoutines::dofIdentification> makeDofIdentificationList(
-      const SuperSpace<Derived> &superspace, const Projector<Derived> &proj) {
+      const SuperSpace<Derived, ptScalar> &superspace, const Projector<Derived, ptScalar> &proj) {
     return GlueRoutines::glue_identificationmaker_<
         Derived,
-        LinearOperatorTraits<Derived>::Form>::makeIdentification(edges_,
+        LinearOperatorTraits<Derived>::Form, ptScalar>::makeIdentification(edges_,
                                                                  superspace,
                                                                  proj);
   }
 
-  Eigen::SparseMatrix<double> assembleGlueMatrix(
-      const SuperSpace<Derived> &superspace, const Projector<Derived> &proj) {
+  Eigen::SparseMatrix<ptScalar> assembleGlueMatrix(
+      const SuperSpace<Derived, ptScalar> &superspace, const Projector<Derived, ptScalar> &proj) {
     const int pre_dofs = proj.get_dofs_after_projector();
     // The dofs that need to be identified with each other are divided into
     // master and slaves, where the master is the firs w.r.t. the tp-ordering
-    std::vector<Eigen::Triplet<double>> trips;
+    std::vector<Eigen::Triplet<ptScalar>> trips;
     std::vector<GlueRoutines::dofIdentification> dof_id =
         makeDofIdentificationList(superspace, proj);
 
@@ -130,7 +130,7 @@ class Glue {
       const int post_index = i;
       while (dof_is_slave[i + skip] && ((i + skip) < pre_dofs)) ++skip;
       const int pre_index = i + skip;
-      trips.push_back(Eigen::Triplet<double>(pre_index, post_index, 1));
+      trips.push_back(Eigen::Triplet<ptScalar>(pre_index, post_index, 1));
       // The dof cannot be declared slave and master at the same time
       assert(!(dof_is_master[pre_index] && dof_is_slave[pre_index]));
       if (dof_is_master[pre_index]) {
@@ -140,7 +140,7 @@ class Glue {
         assert(pre_index == dof_id[master_index].dofs[0]);
         const int number_of_partners = dof_id[master_index].dofs.size();
         for (int j = 1; j < number_of_partners; ++j) {
-          trips.push_back(Eigen::Triplet<double>(dof_id[master_index].dofs[j],
+          trips.push_back(Eigen::Triplet<ptScalar>(dof_id[master_index].dofs[j],
                                                  post_index,
                                                  dof_id[master_index].coef));
         }
@@ -148,7 +148,7 @@ class Glue {
       }
     }
 
-    Eigen::SparseMatrix<double> glue_matrix(pre_dofs, post_dofs);
+    Eigen::SparseMatrix<ptScalar> glue_matrix(pre_dofs, post_dofs);
     glue_matrix.setFromTriplets(trips.begin(), trips.end());
 
     assert(trips.size() == pre_dofs);
@@ -253,11 +253,11 @@ inline bool edgeToBeGluedInFirstComp(int edgeCase) {
   The discontinuous scalar case: Nothing needs to be done
 */
 
-template <typename Derived>
-struct glue_identificationmaker_<Derived, DifferentialForm::Discontinuous> {
+template <typename Derived, typename ptScalar>
+struct glue_identificationmaker_<Derived, DifferentialForm::Discontinuous, ptScalar> {
   static std::vector<dofIdentification> makeIdentification(
       const std::vector<std::array<int, 4>> &edges_,
-      const SuperSpace<Derived> &superspace, const Projector<Derived> &proj) {
+      const SuperSpace<Derived, ptScalar> &superspace, const Projector<Derived, ptScalar> &proj) {
     return {};
   }
 };
@@ -270,11 +270,11 @@ struct glue_identificationmaker_<Derived, DifferentialForm::Discontinuous> {
   builds upon the fact, that px == py == p.
 */
 
-template <typename Derived>
-struct glue_identificationmaker_<Derived, DifferentialForm::Continuous> {
+template <typename Derived, typename ptScalar>
+struct glue_identificationmaker_<Derived, DifferentialForm::Continuous, ptScalar> {
   static std::vector<dofIdentification> makeIdentification(
       const std::vector<std::array<int, 4>> &edges_,
-      const SuperSpace<Derived> &superspace, const Projector<Derived> &proj) {
+      const SuperSpace<Derived, ptScalar> &superspace, const Projector<Derived, ptScalar> &proj) {
     // We check if the space can even be continuous globally.
     assert(superspace.get_polynomial_degree() >= 1);
     const int one_d_dim = superspace.get_polynomial_degree() + 1 +
@@ -410,11 +410,11 @@ struct glue_identificationmaker_<Derived, DifferentialForm::Continuous> {
   == py == p.
 */
 
-template <typename Derived>
-struct glue_identificationmaker_<Derived, DifferentialForm::DivConforming> {
+template <typename Derived, typename ptScalar>
+struct glue_identificationmaker_<Derived, DifferentialForm::DivConforming, ptScalar> {
   static std::vector<dofIdentification> makeIdentification(
       const std::vector<std::array<int, 4>> &edges_,
-      const SuperSpace<Derived> &superspace, const Projector<Derived> &proj) {
+      const SuperSpace<Derived, ptScalar> &superspace, const Projector<Derived, ptScalar> &proj) {
     // since we assume px == py and uniform refinement in both directions, there
     // will be a small_dim and a large_dim in every vector component.
     const int small_dim = superspace.get_polynomial_degree() +

@@ -16,7 +16,7 @@ int main() {
                                                 0.6, 0.7, 0.8, 0.9, 1};
   Test::TestGeometryWriter::writeSpherePanel();
 
-  Bembel::Geometry geometry("test_SpherePanel.dat");
+  Bembel::Geometry<double> geometry("test_SpherePanel.dat");
   assert(geometry.get_geometry().size() == 1);
 
   for (auto x : Test::Constants::eq_points) {
@@ -33,7 +33,7 @@ int main() {
   }
   Test::TestGeometryWriter::writeScaledSpherePanel();
 
-  Bembel::Geometry geometry_fail("test_ScaledSpherePanel.dat");
+  Bembel::Geometry<double> geometry_fail("test_ScaledSpherePanel.dat");
   assert(geometry.get_geometry().size() == 1);
 
   for (auto x : Test::Constants::eq_points) {

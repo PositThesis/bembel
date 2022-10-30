@@ -12,10 +12,10 @@
 namespace Test {
 namespace DuffyTrick {
 
-template <typename Derived, unsigned int maxqdeg>
-bool test_integrate0(const Bembel::AnsatzSpace<Derived> &ansatz_space,
-                     const Bembel::LinearOperatorBase<Derived> &linOp) {
-  Bembel::GaussSquare<maxqdeg + 1> GS;
+template <typename Derived, unsigned int maxqdeg, typename ptScalar>
+bool test_integrate0(const Bembel::AnsatzSpace<Derived, ptScalar> &ansatz_space,
+                     const Bembel::LinearOperatorBase<Derived, ptScalar> &linOp) {
+  Bembel::GaussSquare<maxqdeg + 1, ptScalar> GS;
   auto Q = GS[maxqdeg];
   auto ffield_qnodes =
       Bembel::DuffyTrick::computeFfieldQnodes(ansatz_space.get_superspace(), Q);
@@ -35,7 +35,7 @@ bool test_integrate0(const Bembel::AnsatzSpace<Derived> &ansatz_space,
     for (auto it2 = begin; it2 != end; ++it2) {
       intval.setZero();
       error = 0;
-      Bembel::DuffyTrick::integrate0(linOp, ansatz_space.get_superspace(), *it,
+      Bembel::DuffyTrick::integrate0<Derived, Bembel::SuperSpace<Derived, ptScalar>, ptScalar>(linOp, ansatz_space.get_superspace(), *it,
                                      0, *it2, 0, ffield_qnodes, Q, &intval);
       axis.col(0) << it->llc_(0), it->llc_(0) + h;
       axis.col(1) << it->llc_(1), it->llc_(1) + h;

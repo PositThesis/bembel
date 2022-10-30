@@ -12,14 +12,14 @@ namespace Bembel {
 namespace Spl {
 /**
  *  \ingroup Spline
- *  \brief A "by the book" implementation of the derivatives and TP-algos based 
+ *  \brief A "by the book" implementation of the derivatives and TP-algos based
  *         on the DeBoor Recursion.
  **/
-template <typename T>
-Eigen::Matrix<T, -1, -1> DeBoorDer(
-    Eigen::Matrix<T, -1, -1> const &control_points,
-    std::vector<double> const &knot,
-    std::vector<double> const &evaluation_points) noexcept {
+template <typename T, typename ptScalar>
+Eigen::Matrix<T, -1, -1>
+DeBoorDer(Eigen::Matrix<T, -1, -1> const &control_points,
+          std::vector<ptScalar> const &knot,
+          std::vector<ptScalar> const &evaluation_points) noexcept {
   const int control_points_cols = control_points.cols();
   const int polynomial_degree = knot.size() - control_points_cols - 1;
   Eigen::Matrix<T, -1, -1> temp(control_points.rows(), control_points_cols - 1);
@@ -29,15 +29,15 @@ Eigen::Matrix<T, -1, -1> DeBoorDer(
                   (control_points.col(i + 1) - control_points.col(i));
   }
 
-  std::vector<double> tempknt(knot.begin() + 1, knot.end() - 1);
+  std::vector<ptScalar> tempknt(knot.begin() + 1, knot.end() - 1);
   return DeBoor(temp, tempknt, evaluation_points);
 }
 
-template <typename T>
-std::vector<Eigen::Matrix<T, -1, -1>> DeBoorDer(
-    std::vector<Eigen::Matrix<T, -1, -1>> const &control_points,
-    std::vector<double> const &knot,
-    std::vector<double> const &evaluation_points) noexcept {
+template <typename T, typename ptScalar>
+std::vector<Eigen::Matrix<T, -1, -1>>
+DeBoorDer(std::vector<Eigen::Matrix<T, -1, -1>> const &control_points,
+          std::vector<ptScalar> const &knot,
+          std::vector<ptScalar> const &evaluation_points) noexcept {
   const int control_points_cols = control_points[0].cols();
   const int dimension = control_points.size();
   for (int ll = 0; ll < dimension; ll++) {
@@ -51,22 +51,22 @@ std::vector<Eigen::Matrix<T, -1, -1>> DeBoorDer(
   };
 
   for (int i = control_points_cols - 1; 0 <= --i;) {
-    double factor =
+    ptScalar factor =
         (polynomial_degree) / (knot[i + polynomial_degree + 1] - knot[i + 1]);
     for (int ll = 0; ll < dimension; ll++)
       temp[ll].col(i) =
           factor * (control_points[ll].col(i + 1) - control_points[ll].col(i));
   }
 
-  std::vector<double> tempknt(knot.begin() + 1, knot.end() - 1);
+  std::vector<ptScalar> tempknt(knot.begin() + 1, knot.end() - 1);
 
   return DeBoor(temp, tempknt, evaluation_points);
 }
 
-template <typename T>
-std::vector<Eigen::Matrix<T, -1, -1>> deBoorDerGiveData(
-    std::vector<Eigen::Matrix<T, -1, -1>> const &control_points,
-    std::vector<double> const &knot) noexcept {
+template <typename T, typename ptScalar>
+std::vector<Eigen::Matrix<T, -1, -1>>
+deBoorDerGiveData(std::vector<Eigen::Matrix<T, -1, -1>> const &control_points,
+                  std::vector<ptScalar> const &knot) noexcept {
   const int control_points_cols = control_points[0].cols();
   const int dimension = control_points.size();
   for (int ll = 0; ll < dimension; ll++) {
@@ -80,7 +80,7 @@ std::vector<Eigen::Matrix<T, -1, -1>> deBoorDerGiveData(
   };
 
   for (int i = control_points_cols - 1; 0 <= --i;) {
-    double factor =
+    ptScalar factor =
         (polynomial_degree) / (knot[i + polynomial_degree + 1] - knot[i + 1]);
     for (int ll = 0; ll < dimension; ll++)
       temp[ll].col(i) =
@@ -92,23 +92,25 @@ std::vector<Eigen::Matrix<T, -1, -1>> deBoorDerGiveData(
 ////////////////////////////////////////////////////////////////////////////////
 /// Simple TP Bsplines
 ////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-Eigen::Matrix<T, -1, -1> DeBoorTP(
-    Eigen::Matrix<T, -1, -1> const &control_points,
-    std::vector<double> const &knots_x, std::vector<double> const &knots_y,
-    std::vector<double> const &evaluation_points_x,
-    std::vector<double> const &evaluation_points_y) noexcept {
+template <typename T, typename ptScalar>
+Eigen::Matrix<T, -1, -1>
+DeBoorTP(Eigen::Matrix<T, -1, -1> const &control_points,
+         std::vector<ptScalar> const &knots_x,
+         std::vector<ptScalar> const &knots_y,
+         std::vector<ptScalar> const &evaluation_points_x,
+         std::vector<ptScalar> const &evaluation_points_y) noexcept {
   Eigen::Matrix<T, -1, -1> tmp =
       DeBoor(control_points, knots_x, evaluation_points_x).transpose();
   return DeBoor(tmp, knots_y, evaluation_points_y);
 }
 
-template <typename T>
-std::vector<Eigen::Matrix<T, -1, -1>> DeBoorTP(
-    std::vector<Eigen::Matrix<T, -1, -1>> const &control_points,
-    std::vector<double> const &knots_x, std::vector<double> const &knots_y,
-    std::vector<double> const &evaluation_points_x,
-    std::vector<double> const &evaluation_points_y) noexcept {
+template <typename T, typename ptScalar>
+std::vector<Eigen::Matrix<T, -1, -1>>
+DeBoorTP(std::vector<Eigen::Matrix<T, -1, -1>> const &control_points,
+         std::vector<ptScalar> const &knots_x,
+         std::vector<ptScalar> const &knots_y,
+         std::vector<ptScalar> const &evaluation_points_x,
+         std::vector<ptScalar> const &evaluation_points_y) noexcept {
   std::vector<Eigen::Matrix<T, -1, -1>> tmp =
       DeBoor(control_points, knots_x, evaluation_points_x);
   for (int ll = tmp.size() - 1; ll >= 0; ll--)
@@ -118,13 +120,14 @@ std::vector<Eigen::Matrix<T, -1, -1>> DeBoorTP(
 ////////////////////////////////////////////////////////////////////////////////
 // TP Der with direction declaration
 ////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-Eigen::Matrix<T, -1, -1> DeBoorTPDer(
-    Eigen::Matrix<T, -1, -1> const &control_points,
-    std::vector<double> const &knots_x, std::vector<double> const &knots_y,
-    std::vector<double> const &evaluation_points_x,
-    std::vector<double> const &evaluation_points_y, bool const &x_to_be_derived,
-    bool const &y_to_be_derived) noexcept {
+template <typename T, typename ptScalar>
+Eigen::Matrix<T, -1, -1>
+DeBoorTPDer(Eigen::Matrix<T, -1, -1> const &control_points,
+            std::vector<ptScalar> const &knots_x,
+            std::vector<ptScalar> const &knots_y,
+            std::vector<ptScalar> const &evaluation_points_x,
+            std::vector<ptScalar> const &evaluation_points_y,
+            bool const &x_to_be_derived, bool const &y_to_be_derived) noexcept {
   Eigen::Matrix<T, -1, -1> tmp =
       x_to_be_derived
           ? DeBoorDer(control_points, knots_x, evaluation_points_x).transpose()
@@ -133,13 +136,14 @@ Eigen::Matrix<T, -1, -1> DeBoorTPDer(
                          : DeBoor(tmp, knots_y, evaluation_points_y);
 }
 
-template <typename T>
-std::vector<Eigen::Matrix<T, -1, -1>> DeBoorTPDer(
-    std::vector<Eigen::Matrix<T, -1, -1>> const &control_points,
-    std::vector<double> const &knots_x, std::vector<double> const &knots_y,
-    std::vector<double> const &evaluation_points_x,
-    std::vector<double> const &evaluation_points_y, bool const &x_to_be_derived,
-    bool const &y_to_be_derived) noexcept {
+template <typename T, typename ptScalar>
+std::vector<Eigen::Matrix<T, -1, -1>>
+DeBoorTPDer(std::vector<Eigen::Matrix<T, -1, -1>> const &control_points,
+            std::vector<ptScalar> const &knots_x,
+            std::vector<ptScalar> const &knots_y,
+            std::vector<ptScalar> const &evaluation_points_x,
+            std::vector<ptScalar> const &evaluation_points_y,
+            bool const &x_to_be_derived, bool const &y_to_be_derived) noexcept {
   std::vector<Eigen::Matrix<T, -1, -1>> tmp =
       x_to_be_derived ? DeBoorDer(control_points, knots_x, evaluation_points_x)
                       : DeBoor(control_points, knots_x, evaluation_points_x);
@@ -148,6 +152,6 @@ std::vector<Eigen::Matrix<T, -1, -1>> DeBoorTPDer(
   return y_to_be_derived ? DeBoorDer(tmp, knots_y, evaluation_points_y)
                          : DeBoor(tmp, knots_y, evaluation_points_y);
 }
-}  // namespace Spl
-}  // namespace Bembel
+} // namespace Spl
+} // namespace Bembel
 #endif

@@ -16,11 +16,11 @@ namespace Bembel {
  *  \ingroup Quadrature
  *  \todo add a desciption
  */
-template <template <unsigned int qrOrder> class QuadratureRule,
-          unsigned int Order>
+template <template <unsigned int qrOrder, typename qrptScalar> class QuadratureRule,
+          unsigned int Order, typename ptScalar>
 struct TensorProductQuadratureVector {
   TensorProductQuadratureVector() {
-    QuadratureRule<Order + 1> GL;
+    QuadratureRule<Order + 1, ptScalar> GL;
     Q_.xi_.resize(2, GL.xi_.size() * GL.xi_.size());
     Q_.w_.resize(GL.w_.size() * GL.w_.size());
     for (auto k = 0; k < Q_.xi_.cols(); ++k) {
@@ -28,9 +28,9 @@ struct TensorProductQuadratureVector {
       Q_.w_(k) = GL.w_[k / GL.w_.size()] * GL.w_[k % GL.w_.size()];
     }
   }
-  Cubature Q_;
-  TensorProductQuadratureVector<QuadratureRule, Order - 1> remainingQuadratures_;
-  const Cubature &operator[](unsigned int i) const {
+  Cubature<ptScalar> Q_;
+  TensorProductQuadratureVector<QuadratureRule, Order - 1, ptScalar> remainingQuadratures_;
+  const Cubature<ptScalar> &operator[](unsigned int i) const {
     return (i == Order) ? Q_ : remainingQuadratures_[i];
   }
 };
@@ -39,10 +39,10 @@ struct TensorProductQuadratureVector {
  *  \ingroup Quadrature
  *  \todo add a desciption
  */
-template <template <unsigned int qrOrder> class QuadratureRule>
-struct TensorProductQuadratureVector<QuadratureRule, 0> {
+template <template <unsigned int qrOrder, typename qrptScalar> class QuadratureRule, typename ptScalar>
+struct TensorProductQuadratureVector<QuadratureRule, 0, ptScalar> {
   TensorProductQuadratureVector() {
-    QuadratureRule<1> GL;
+    QuadratureRule<1, ptScalar> GL;
     Q_.xi_.resize(2, GL.xi_.size() * GL.xi_.size());
     Q_.w_.resize(GL.w_.size() * GL.w_.size());
     for (auto k = 0; k < Q_.xi_.cols(); ++k) {
@@ -50,8 +50,8 @@ struct TensorProductQuadratureVector<QuadratureRule, 0> {
       Q_.w_(k) = GL.w_[k / GL.w_.size()] * GL.w_[k % GL.w_.size()];
     }
   }
-  Cubature Q_;
-  const Cubature &operator[](unsigned int i) const { return Q_; }
+  Cubature<ptScalar> Q_;
+  const Cubature<ptScalar> &operator[](unsigned int i) const { return Q_; }
 };
 
 }  // namespace Bembel

@@ -10,29 +10,29 @@
 
 namespace Bembel {
 
-template <typename Scalar>
+template <typename Scalar, typename ptScalar>
 class BlockClusterTree;
 
 struct BlockClusterAdmissibility {
   enum { Refine = 0, LowRank = 1, Dense = 2 };
 };
 
-template <typename Scalar>
+template <typename Scalar, typename ptScalar>
 struct BlockClusterTreeParameters {
   BlockClusterTreeParameters()
       : eta_(-1), min_cluster_level_(-1), max_level_(-1) {}
-  GaussSquare<Constants::maximum_quadrature_degree> GS_;
-  Eigen::Matrix<double, 12, Eigen::Dynamic> ffield_qnodes_;
-  double eta_;             // eta from admissibility condition
+  GaussSquare<Constants::maximum_quadrature_degree, ptScalar> GS_;
+  Eigen::Matrix<ptScalar, 12, Eigen::Dynamic> ffield_qnodes_;
+  ptScalar eta_;             // eta from admissibility condition
   int ffield_deg_;         // todo @Michael comment this
   int min_cluster_level_;  // a tree leaf has 4^min_cluster_level_ elements
   int max_level_;          // depth of block cluster tree
   int polynomial_degree_;  // todo @Michael comment this
   int polynomial_degree_plus_one_squared_;  // todo @Michael comment this
-  const ElementTreeNode *et_root_;
+  const ElementTreeNode<ptScalar> *et_root_;
 };
 
-template <typename Scalar>
+template <typename Scalar, typename ptScalar>
 class BlockClusterTree {
  public:
   //////////////////////////////////////////////////////////////////////////////
@@ -84,8 +84,8 @@ class BlockClusterTree {
   }
 
   template <typename Derived>
-  BlockClusterTree(const LinearOperatorBase<Derived> &linear_operator,
-                   const AnsatzSpace<Derived> &ansatz_space) {
+  BlockClusterTree(const LinearOperatorBase<Derived, ptScalar> &linear_operator,
+                   const AnsatzSpace<Derived, ptScalar> &ansatz_space) {
     init_BlockClusterTree(linear_operator, ansatz_space);
   }
   //////////////////////////////////////////////////////////////////////////////
@@ -107,19 +107,19 @@ class BlockClusterTree {
   //////////////////////////////////////////////////////////////////////////////
   /// init
   //////////////////////////////////////////////////////////////////////////////
-  void set_parameters(double eta = 1.6, int min_cluster_level = 1) {
-    parameters_ = std::make_shared<BlockClusterTreeParameters<Scalar>>();
+  void set_parameters(ptScalar eta = 1.6, int min_cluster_level = 1) {
+    parameters_ = std::make_shared<BlockClusterTreeParameters<Scalar, ptScalar>>();
     parameters_->eta_ = eta;
     parameters_->min_cluster_level_ = min_cluster_level;
     return;
   }
 
   template <typename Derived>
-  void init_BlockClusterTree(const LinearOperatorBase<Derived> &linOp,
-                             const AnsatzSpace<Derived> &ansatz_space) {
+  void init_BlockClusterTree(const LinearOperatorBase<Derived, ptScalar> &linOp,
+                             const AnsatzSpace<Derived, ptScalar> &ansatz_space) {
     if (parameters_ == nullptr) set_parameters();
     // get element tree from ansatz space
-    const ElementTree &element_tree =
+    const ElementTree<ptScalar> &element_tree =
         ansatz_space.get_superspace().get_mesh().get_element_tree();
     parameters_->et_root_ = std::addressof(element_tree.root());
     cluster1_ = std::addressof(element_tree.root());
@@ -149,10 +149,10 @@ class BlockClusterTree {
   /// methods
   //////////////////////////////////////////////////////////////////////////////
   template <typename Derived>
-  void appendSubtree(const LinearOperatorBase<Derived> &linear_operator,
-                     const AnsatzSpace<Derived> &ansatz_space,
-                     const ElementTreeNode *cluster1,
-                     const ElementTreeNode *cluster2) {
+  void appendSubtree(const LinearOperatorBase<Derived, ptScalar> &linear_operator,
+                     const AnsatzSpace<Derived, ptScalar> &ansatz_space,
+                     const ElementTreeNode<ptScalar> *cluster1,
+                     const ElementTreeNode<ptScalar> *cluster2) {
     cc_ = compareCluster(*cluster1, *cluster2);
     // there are children to handle
     if (cc_ == BlockClusterAdmissibility::Refine) {
@@ -160,8 +160,8 @@ class BlockClusterTree {
       sons_.resize(cluster1->sons_.size(), cluster2->sons_.size());
       for (auto j = 0; j < sons_.cols(); ++j)
         for (auto i = 0; i < sons_.rows(); ++i) {
-          const ElementTreeNode &son1 = cluster1->sons_[i];
-          const ElementTreeNode &son2 = cluster2->sons_[j];
+          const ElementTreeNode<ptScalar> &son1 = cluster1->sons_[i];
+          const ElementTreeNode<ptScalar> &son2 = cluster2->sons_[j];
           sons_(i, j).parameters_ = parameters_;
           sons_(i, j).cluster1_ = std::addressof(son1);
           sons_(i, j).cluster2_ = std::addressof(son2);
@@ -197,8 +197,8 @@ class BlockClusterTree {
   int get_cc() const { return cc_; }
   int rows() const { return rows_; }
   int cols() const { return cols_; }
-  const ElementTreeNode *get_cluster1() const { return cluster1_; }
-  const ElementTreeNode *get_cluster2() const { return cluster2_; }
+  const ElementTreeNode<ptScalar> *get_cluster1() const { return cluster1_; }
+  const ElementTreeNode<ptScalar> *get_cluster2() const { return cluster2_; }
   int get_level() const { return get_cluster1()->get_level(); }
   typename std::vector<BlockClusterTree *>::iterator lbegin() {
     return leaf_pointers_->begin();
@@ -230,10 +230,10 @@ class BlockClusterTree {
     return get_parameters().polynomial_degree_plus_one_squared_ *
            std::distance(get_parameters().et_root_->begin(), cluster2_->end());
   }
-  const BlockClusterTreeParameters<Scalar> &get_parameters() const {
+  const BlockClusterTreeParameters<Scalar, ptScalar> &get_parameters() const {
     return *parameters_;
   }
-  BlockClusterTreeParameters<Scalar> &get_parameters() { return *parameters_; }
+  BlockClusterTreeParameters<Scalar, ptScalar> &get_parameters() { return *parameters_; }
 
   const TreeLeaf<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>>
       &get_leaf() const {
@@ -249,13 +249,13 @@ class BlockClusterTree {
   /**
    *  \brief determines admissible clusters
    **/
-  int compareCluster(const ElementTreeNode &cluster1,
-                     const ElementTreeNode &cluster2) {
+  int compareCluster(const ElementTreeNode<ptScalar> &cluster1,
+                     const ElementTreeNode<ptScalar> &cluster2) {
     int r;
-    double dist = (cluster1.midpoint_ - cluster2.midpoint_).norm() -
+    ptScalar dist = (cluster1.midpoint_ - cluster2.midpoint_).norm() -
                   cluster1.radius_ - cluster2.radius_;
     dist = dist > 0 ? dist : 0;
-    double max_radius = cluster1.radius_ > cluster2.radius_ ? cluster1.radius_
+    ptScalar max_radius = cluster1.radius_ > cluster2.radius_ ? cluster1.radius_
                                                             : cluster2.radius_;
 
     /**
@@ -294,14 +294,14 @@ class BlockClusterTree {
   //////////////////////////////////////////////////////////////////////////////
   /// member variables
   //////////////////////////////////////////////////////////////////////////////
-  std::shared_ptr<BlockClusterTreeParameters<Scalar>> parameters_;
+  std::shared_ptr<BlockClusterTreeParameters<Scalar, ptScalar>> parameters_;
   GenericMatrix<BlockClusterTree> sons_;
   std::shared_ptr<
       TreeLeaf<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>>>
       leaf_;
   std::shared_ptr<std::vector<BlockClusterTree *>> leaf_pointers_;
-  const ElementTreeNode *cluster1_;
-  const ElementTreeNode *cluster2_;
+  const ElementTreeNode<ptScalar> *cluster1_;
+  const ElementTreeNode<ptScalar> *cluster2_;
   int rows_;
   int cols_;
   int cc_;

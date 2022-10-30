@@ -16,11 +16,11 @@ namespace DuffyTrick {
  *           in order to quickly evaluate the integrand in the case that the
  *           far-field quadrature degree can be used
  **/
-template <typename Derived, class T>
-void integrate0(const LinearOperatorBase<Derived> &LinOp, const T &super_space,
-                const ElementTreeNode &e1, int rot1, const ElementTreeNode &e2,
-                int rot2, const Eigen::MatrixXd &ffield_qnodes,
-                const Cubature &Q,
+template <typename Derived, class T, typename ptScalar>
+void integrate0(const LinearOperatorBase<Derived, ptScalar> &LinOp, const T &super_space,
+                const ElementTreeNode<ptScalar> &e1, int rot1, const ElementTreeNode<ptScalar> &e2,
+                int rot2, const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> &ffield_qnodes,
+                const Cubature<ptScalar> &Q,
                 Eigen::Matrix<typename LinearOperatorTraits<Derived>::Scalar,
                               Eigen::Dynamic, Eigen::Dynamic> *intval) {
   intval->setZero();

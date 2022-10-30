@@ -4,9 +4,9 @@ int main() {
   using namespace Bembel;
   // The VTKwriter sets up initial geomety information.
   Eigen::VectorXd linspace = Eigen::VectorXd::LinSpaced(50, 0, 3);
-  VTKDomainExport writer(linspace, linspace, linspace);
+  VTKDomainExport<double> writer(linspace, linspace, linspace);
 
-  Geometry geo("sphere.dat");
+  Geometry<double> geo("sphere.dat");
 
   // Now we can add user defined data. There are different options.
   // Exceptionally handy is a dataset that describes the distance to the
@@ -15,7 +15,7 @@ int main() {
   // the elements of a ClusterTree. Usually the ClusterTree is hidden in an ansatz space and
   // can be accest via the get_mesh() method. Try running the
   // example_VTKSurfaceExport and visualise both files on top of each other.
-  ClusterTree mesh(geo, 5);
+  ClusterTree<double> mesh(geo, 5);
   std::function<double(const Eigen::Vector3d&)> fun1 =
       [&](const Eigen::Vector3d& point_in_space) {
         double dist = 1000;

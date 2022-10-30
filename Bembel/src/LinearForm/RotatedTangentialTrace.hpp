@@ -12,11 +12,11 @@
 
 namespace Bembel {
 
-template <typename Scalar>
+template <typename Scalar, typename ptScalar>
 class RotatedTangentialTrace;
 
-template <typename ScalarT>
-struct LinearFormTraits<RotatedTangentialTrace<ScalarT>> {
+template <typename ScalarT, typename ptScalar>
+struct LinearFormTraits<RotatedTangentialTrace<ScalarT, ptScalar>> {
   typedef ScalarT Scalar;
 };
 
@@ -25,34 +25,34 @@ struct LinearFormTraits<RotatedTangentialTrace<ScalarT>> {
  *    \brief This class provides a specialization of the linear form required
  *for the solution of the electric field integral equation.
  **/
-template <typename Scalar>
+template <typename Scalar, typename ptScalar>
 class RotatedTangentialTrace
-    : public LinearFormBase<RotatedTangentialTrace<Scalar>, Scalar> {
+    : public LinearFormBase<RotatedTangentialTrace<Scalar, ptScalar>, Scalar, ptScalar> {
  public:
   RotatedTangentialTrace() {}
   void set_function(
-      const std::function<Eigen::Matrix<Scalar, 3, 1>(Eigen::Vector3d)>
+      const std::function<Eigen::Matrix<Scalar, 3, 1>(Eigen::Matrix<ptScalar, 3, 1>)>
           &function) {
     function_ = function;
   }
   template <class T>
   void evaluateIntegrand_impl(
-      const T &super_space, const SurfacePoint &p,
+      const T &super_space, const SurfacePoint<ptScalar> &p,
       Eigen::Matrix<Scalar, Eigen::Dynamic, 2> *intval) const {
     auto polynomial_degree = super_space.get_polynomial_degree();
     auto polynomial_degree_plus_one_squared =
         (polynomial_degree + 1) * (polynomial_degree + 1);
 
     // get evaluation points on unit square
-    auto s = p.segment<2>(0);
+    Eigen::Matrix<ptScalar, 2, 1> s = p.segment(0, 2);
 
     // get quadrature weights
     auto ws = p(2);
 
     // get points on geometry and tangential derivatives
-    auto x_f = p.segment<3>(3);
-    auto x_f_dx = p.segment<3>(6);
-    auto x_f_dy = p.segment<3>(9);
+    Eigen::Matrix<ptScalar, 3, 1> x_f = p.segment(3, 3);
+    Eigen::Matrix<ptScalar, 3, 1> x_f_dx = p.segment(6, 3);
+    Eigen::Matrix<ptScalar, 3, 1> x_f_dy = p.segment(9, 3);
 
     // compute surface measures from tangential derivatives
     auto x_n = x_f_dx.cross(x_f_dy).normalized();
@@ -82,7 +82,7 @@ class RotatedTangentialTrace
   };
 
  private:
-  std::function<Eigen::Matrix<Scalar, 3, 1>(Eigen::Vector3d)> function_;
+  std::function<Eigen::Matrix<Scalar, 3, 1>(Eigen::Matrix<ptScalar, 3, 1>)> function_;
 };
 }  // namespace Bembel
 

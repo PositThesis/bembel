@@ -18,7 +18,7 @@ namespace Bembel {
  *assemble a transformation matrix, which relates the superspace to the desired
  *basis.
  */
-template <typename Derived>
+  template <typename Derived, typename ptScalar>
 class AnsatzSpace {
  public:
   enum { Form = LinearOperatorTraits<Derived>::Form };
@@ -43,7 +43,7 @@ class AnsatzSpace {
     return *this;
   }
 
-  AnsatzSpace(const Geometry &geometry, int refinement_level,
+  AnsatzSpace(const Geometry<ptScalar> &geometry, int refinement_level,
               int polynomial_degree, int knot_repetition = 1) {
     init_AnsatzSpace(geometry, refinement_level, polynomial_degree,
                      knot_repetition);
@@ -52,12 +52,12 @@ class AnsatzSpace {
   //////////////////////////////////////////////////////////////////////////////
   //    init_Ansatzspace
   //////////////////////////////////////////////////////////////////////////////
-  void init_AnsatzSpace(const Geometry &geometry, int refinement_level,
+  void init_AnsatzSpace(const Geometry<ptScalar> &geometry, int refinement_level,
                         int polynomial_degree, int knot_repetition) {
     knot_repetition_ = knot_repetition;
     super_space_.init_SuperSpace(geometry, refinement_level, polynomial_degree);
-    Projector<Derived> proj(super_space_, knot_repetition_);
-    Glue<Derived> glue(super_space_, proj);
+    Projector<Derived, ptScalar> proj(super_space_, knot_repetition_);
+    Glue<Derived, ptScalar> glue(super_space_, proj);
     transformation_matrix_ =
         proj.get_projection_matrix() * glue.get_glue_matrix();
     return;
@@ -65,7 +65,7 @@ class AnsatzSpace {
   //////////////////////////////////////////////////////////////////////////////
   //    getters
   //////////////////////////////////////////////////////////////////////////////
-  const SuperSpace<Derived> &get_superspace() const { return super_space_; }
+  const SuperSpace<Derived, ptScalar> &get_superspace() const { return super_space_; }
   int get_knot_repetition() const { return knot_repetition_; }
   int get_refinement_level() const {
     return super_space_.get_refinement_level();
@@ -80,18 +80,18 @@ class AnsatzSpace {
     return super_space_.get_number_of_patches();
   }
   int get_number_of_dofs() const { return transformation_matrix_.cols(); }
-  const PatchVector &get_geometry() const {
+  const PatchVector<ptScalar> &get_geometry() const {
     return super_space_.get_geometry();
   }
-  const Eigen::SparseMatrix<double> &get_transformation_matrix() const {
+  const Eigen::SparseMatrix<ptScalar> &get_transformation_matrix() const {
     return transformation_matrix_;
   }
   //////////////////////////////////////////////////////////////////////////////
   //    private member variables
   //////////////////////////////////////////////////////////////////////////////
  private:
-  Eigen::SparseMatrix<double> transformation_matrix_;
-  SuperSpace<Derived> super_space_;
+  Eigen::SparseMatrix<ptScalar> transformation_matrix_;
+  SuperSpace<Derived, ptScalar> super_space_;
   int knot_repetition_;
 };
 }  // namespace Bembel

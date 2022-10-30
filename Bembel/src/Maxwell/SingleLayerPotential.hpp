@@ -11,41 +11,41 @@
 namespace Bembel {
 // forward declaration of class MaxwellSingleLayerPotential in order to define
 // traits
-template <typename LinOp>
+template <typename LinOp, typename ptScalar>
 class MaxwellSingleLayerPotential;
 
-template <typename LinOp>
-struct PotentialTraits<MaxwellSingleLayerPotential<LinOp>> {
-  typedef Eigen::VectorXcd::Scalar Scalar;
+template <typename LinOp, typename ptScalar>
+struct PotentialTraits<MaxwellSingleLayerPotential<LinOp, ptScalar>> {
+  typedef typename Eigen::Matrix<std::complex<ptScalar>, Eigen::Dynamic, 1>::Scalar Scalar;
   static constexpr int OutputSpaceDimension = 3;
 };
 
 /**
  * \ingroup Maxwell
  */
-template <typename LinOp>
+template <typename LinOp, typename ptScalar>
 class MaxwellSingleLayerPotential
-    : public PotentialBase<MaxwellSingleLayerPotential<LinOp>, LinOp> {
+    : public PotentialBase<MaxwellSingleLayerPotential<LinOp, ptScalar>, LinOp, ptScalar> {
   // implementation of the kernel evaluation, which may be based on the
   // information available from the superSpace
  public:
   MaxwellSingleLayerPotential() {}
   Eigen::Matrix<typename PotentialReturnScalar<
                     typename LinearOperatorTraits<LinOp>::Scalar,
-                    std::complex<double>>::Scalar,
+                    std::complex<ptScalar>>::Scalar,
                 3, 1>
-  evaluateIntegrand_impl(const FunctionEvaluator<LinOp> &fun_ev,
-                         const ElementTreeNode &element,
-                         const Eigen::Vector3d &point,
-                         const SurfacePoint &p) const {
+  evaluateIntegrand_impl(const FunctionEvaluator<LinOp, ptScalar> &fun_ev,
+                         const ElementTreeNode<ptScalar> &element,
+                         const Eigen::Matrix<ptScalar, 3, 1> &point,
+                         const SurfacePoint<ptScalar> &p) const {
     // get evaluation points on unit square
-    auto s = p.segment<2>(0);
+    Eigen::Matrix<ptScalar, 2, 1> s = p.segment(0, 2);
 
     // get quadrature weights
     auto ws = p(2);
 
     // get points on geometry and tangential derivatives
-    auto x_f = p.segment<3>(3);
+    Eigen::Matrix<ptScalar, 3, 1> x_f = p.segment(3, 3);
 
     // compute surface measures from tangential derivatives
     auto h = element.get_h();
@@ -63,7 +63,7 @@ class MaxwellSingleLayerPotential
     // auto integrand = kernel * scalar_part * ws;
     auto integrand =
         (kernel * scalar_part +
-         1. / wavenumber2_ * kernel_gradient * divergence_part) *
+         ptScalar(1.) / wavenumber2_ * kernel_gradient * divergence_part) *
         ws;
 
     return integrand;
@@ -72,40 +72,40 @@ class MaxwellSingleLayerPotential
   /**
    * \brief Fundamental solution of Helmholtz problem
    */
-  std::complex<double> evaluateKernel(const Eigen::Vector3d &x,
-                                      const Eigen::Vector3d &y) const {
+  std::complex<ptScalar> evaluateKernel(const Eigen::Matrix<ptScalar, 3, 1> &x,
+                                      const Eigen::Matrix<ptScalar, 3, 1> &y) const {
     auto r = (x - y).norm();
-    return std::exp(-std::complex<double>(0., 1.) * wavenumber_ * r) / 4. /
-           BEMBEL_PI / r;
+    return std::exp(-std::complex<ptScalar>(0., 1.) * wavenumber_ * r) / ptScalar(4.) /
+           ptScalar(BEMBEL_PI) / r;
   }
   /**
    * \brief Gradient of fundamental solution of Helmholtz problem
    */
-  Eigen::VectorXcd evaluateKernelGrad(const Eigen::Vector3d &x,
-                                      const Eigen::Vector3d &y) const {
+  Eigen::VectorX<std::complex<ptScalar>> evaluateKernelGrad(const Eigen::Matrix<ptScalar, 3, 1> &x,
+                                      const Eigen::Matrix<ptScalar, 3, 1> &y) const {
     auto c = x - y;
     auto r = c.norm();
     auto r3 = r * r * r;
-    auto i = std::complex<double>(0., 1.);
-    return (std::exp(-i * wavenumber_ * r) * (-1. - i * wavenumber_ * r) / 4. /
-            BEMBEL_PI / r3) *
+    auto i = std::complex<ptScalar>(0., 1.);
+    return (std::exp(-i * wavenumber_ * r) * (ptScalar(-1.) - i * wavenumber_ * r) / ptScalar(4.) /
+            ptScalar(BEMBEL_PI) / r3) *
            c;
   }
   //////////////////////////////////////////////////////////////////////////////
   //    setters
   //////////////////////////////////////////////////////////////////////////////
-  void set_wavenumber(std::complex<double> wavenumber) {
+  void set_wavenumber(std::complex<ptScalar> wavenumber) {
     wavenumber_ = wavenumber;
     wavenumber2_ = wavenumber_ * wavenumber_;
   }
   //////////////////////////////////////////////////////////////////////////////
   //    getters
   //////////////////////////////////////////////////////////////////////////////
-  std::complex<double> get_wavenumber() { return wavenumber_; }
+  std::complex<ptScalar> get_wavenumber() { return wavenumber_; }
 
  private:
-  std::complex<double> wavenumber_;
-  std::complex<double> wavenumber2_;
+  std::complex<ptScalar> wavenumber_;
+  std::complex<ptScalar> wavenumber2_;
 };
 
 }  // namespace Bembel

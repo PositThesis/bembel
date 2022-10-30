@@ -15,8 +15,9 @@ namespace DuffyTrick {
  *  \ingroup DuffyTrick
  *  \brief computes rotations for the Duffy trick
  **/
-Eigen::Vector2d tau(double x, double y, int thecase) {
-  Eigen::Vector2d retval;
+template<typename ptScalar>
+Eigen::Matrix<ptScalar, 2, 1> tau(ptScalar x, ptScalar y, int thecase) {
+  Eigen::Matrix<ptScalar, 2, 1> retval;
   switch (thecase) {
     case 1:
       retval << 1 - y, x;

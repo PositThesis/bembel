@@ -19,40 +19,43 @@
 
 namespace Bembel {
 
+template <typename ptScalar>
 class DummyOperator;
 
-template <>
-struct LinearOperatorTraits<DummyOperator> {
-  typedef Eigen::VectorXd EigenType;
-  typedef Eigen::VectorXd::Scalar Scalar;
+template <typename ptScalar>
+struct LinearOperatorTraits<DummyOperator<ptScalar>> {
+  using EigenType = Eigen::Matrix<ptScalar, Eigen::Dynamic, 1>;
+  using Scalar = typename Eigen::Matrix<ptScalar, Eigen::Dynamic, 1>::Scalar;
   enum { OperatorOrder = 0, Form = DifferentialForm::Discontinuous, NumberOfFMMComponents = 1 };
 };
 
 // forward declaration of class DummyOperator in order to define traits
 // define some default test functiom
-std::function<double(const Eigen::Vector2d &, const Eigen::Vector2d &)>
+template <typename ptScalar>
+std::function<ptScalar(const Eigen::Matrix<ptScalar, 2, 1> &, const Eigen::Matrix<ptScalar, 2, 1> &)>
     DummyOperator_test_function =
-        [](const Eigen::Vector2d &x, const Eigen::Vector2d &y) { return 1.; };
+        [](const Eigen::Matrix<ptScalar, 2, 1> &x, const Eigen::Matrix<ptScalar, 2, 1> &y) { return 1.; };
 
 /**
  *  \ingroup DummyOperator
  *  \brief This class provides a dummy specialization of the LinearOperator and
  * corresponding Traits for testing and debugging
  */
-class DummyOperator : public LinearOperatorBase<DummyOperator> {
+template <typename ptScalar>
+class DummyOperator : public LinearOperatorBase<DummyOperator<ptScalar>, ptScalar> {
   // implementation of the kernel evaluation, which may be based on the
   // information available from the superSpace
  public:
-  DummyOperator() { test_func_ = DummyOperator_test_function; }
+  DummyOperator() { test_func_ = DummyOperator_test_function<ptScalar>; }
   DummyOperator(
-      std::function<double(const Eigen::Vector2d &, const Eigen::Vector2d &)>
+      std::function<ptScalar(const Eigen::Matrix<ptScalar, 2, 1> &, const Eigen::Matrix<ptScalar, 2, 1> &)>
           test_func) {
     test_func_ = test_func;
   }
   template <class T>
   void evaluateIntegrand_impl(
-      const T &super_space, const SurfacePoint &p1, const SurfacePoint &p2,
-      Eigen::Matrix<typename LinearOperatorTraits<DummyOperator>::Scalar,
+      const T &super_space, const SurfacePoint<ptScalar> &p1, const SurfacePoint<ptScalar> &p2,
+      Eigen::Matrix<typename LinearOperatorTraits<DummyOperator<ptScalar>>::Scalar,
                     Eigen::Dynamic, Eigen::Dynamic> *intval) const {
     (*intval)(0, 0) +=
         test_func_(p1.segment(3, 2), p2.segment(3, 2)) * p1(2) * p2(2);
@@ -60,7 +63,7 @@ class DummyOperator : public LinearOperatorBase<DummyOperator> {
   }
 
  private:
-  std::function<double(const Eigen::Vector2d &, const Eigen::Vector2d &)>
+  std::function<ptScalar(const Eigen::Matrix<ptScalar, 2, 1> &, const Eigen::Matrix<ptScalar, 2, 1> &)>
       test_func_;
 };
 

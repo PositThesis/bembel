@@ -40,18 +40,18 @@ struct testMatchingTypes<true> {
  **/
 namespace Eigen {
 /// forward definition of the H2Matrix Class in order to define traits
-template <typename ScalarT>
+template <typename ScalarT, typename ptScalar>
 class H2Matrix;
 /// inherit the traits from the Eigen::SparseMatrix class
 namespace internal {
-template <typename ScalarT>
-struct traits<H2Matrix<ScalarT>>
+template <typename ScalarT, typename ptScalar>
+struct traits<H2Matrix<ScalarT, ptScalar>>
     : public internal::traits<SparseMatrix<ScalarT>> {};
 }  // namespace internal
 
 // actual definition of the class
-template <typename ScalarT>
-class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
+template <typename ScalarT, typename ptScalar>
+class H2Matrix : public EigenBase<H2Matrix<ScalarT, ptScalar>> {
  public:
   //////////////////////////////////////////////////////////////////////////////
   /// Eigen related things
@@ -86,7 +86,7 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
    */
   template <typename Derived>
   void init_H2Matrix(const Derived& linOp,
-                     const Bembel::AnsatzSpace<Derived>& ansatz_space,
+                     const Bembel::AnsatzSpace<Derived, ptScalar>& ansatz_space,
                      int number_of_points = 9) {
     // get transformation matrix from ansatz space
     transformation_matrix_ = ansatz_space.get_transformation_matrix();
@@ -100,7 +100,7 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
         Bembel::LinearOperatorTraits<Derived>::Form>();
     block_cluster_tree_.resize(vector_dimension, vector_dimension);
     {
-      Bembel::BlockClusterTree<Scalar> bt(linOp, ansatz_space);
+      Bembel::BlockClusterTree<Scalar, ptScalar> bt(linOp, ansatz_space);
       for (int i = 0; i < vector_dimension; ++i)
         for (int j = 0; j < vector_dimension; ++j)
           block_cluster_tree_(i, j) =
@@ -114,21 +114,21 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
     if (cluster_refinement > parameters.max_level_)
       cluster_refinement = parameters.max_level_;
     fmm_transfer_matrices_ = Bembel::H2Multipole::computeTransferMatrices<
-        Bembel::H2Multipole::ChebychevRoots>(number_of_points);
+        Bembel::H2Multipole::ChebychevRoots<ptScalar>, ptScalar>(number_of_points);
     fmm_moment_matrix_ = Bembel::H2Multipole::
-        Moment2D<Bembel::H2Multipole::ChebychevRoots, Derived>::compute2DMoment(
+        Moment2D<Bembel::H2Multipole::ChebychevRoots<ptScalar>, Derived, ptScalar>::compute2DMoment(
             ansatz_space.get_superspace(), cluster_level, cluster_refinement,
             number_of_points);
     // compute interpolation points
-    Eigen::VectorXd interpolation_points1D =
-        Bembel::H2Multipole::ChebychevRoots(number_of_points).points_;
-    Eigen::MatrixXd interpolation_points2D =
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> interpolation_points1D =
+        Bembel::H2Multipole::ChebychevRoots<ptScalar>(number_of_points).points_;
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> interpolation_points2D =
         Bembel::H2Multipole::interpolationPoints2D(interpolation_points1D);
     // compute content of tree leafs
     int polynomial_degree = ansatz_space.get_polynomial_degree();
     int polynomial_degree_plus_one_squared =
         (polynomial_degree + 1) * (polynomial_degree + 1);
-    Bembel::GaussSquare<Bembel::Constants::maximum_quadrature_degree> GS;
+    Bembel::GaussSquare<Bembel::Constants::maximum_quadrature_degree, ptScalar> GS;
     auto super_space = ansatz_space.get_superspace();
     auto ffield_deg = linOp.get_FarfieldQuadratureDegree(polynomial_degree);
     auto ffield_qnodes =
@@ -141,7 +141,7 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
       {
         // build vector of iterators
         std::vector<
-            typename std::vector<Bembel::BlockClusterTree<Scalar>*>::iterator>
+            typename std::vector<Bembel::BlockClusterTree<Scalar, ptScalar>*>::iterator>
             leafs;
         leafs.resize(vector_dimension * vector_dimension);
         for (int i = 0; i < vector_dimension; ++i)
@@ -155,9 +155,9 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
             switch ((*(leafs[0]))->get_cc()) {
               // assemble dense matrix blocks
               case Bembel::BlockClusterAdmissibility::Dense: {
-                const Bembel::ElementTreeNode* cluster1 =
+                const Bembel::ElementTreeNode<ptScalar>* cluster1 =
                     (*(leafs[0]))->get_cluster1();
-                const Bembel::ElementTreeNode* cluster2 =
+                const Bembel::ElementTreeNode<ptScalar>* cluster2 =
                     (*(leafs[0]))->get_cluster2();
                 int block_size =
                     std::distance(cluster2->begin(), cluster2->end()) *
@@ -181,7 +181,7 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
                                vector_dimension *
                                    polynomial_degree_plus_one_squared);
                     // do integration
-                    Bembel::DuffyTrick::evaluateBilinearForm(
+                    Bembel::DuffyTrick::evaluateBilinearForm<Derived, Bembel::SuperSpace<Derived, ptScalar>, Bembel::GaussSquare<Bembel::Constants::maximum_quadrature_degree, ptScalar>, ptScalar>(
                         linOp, super_space, element1, element2, GS,
                         ffield_qnodes, &intval);
                     // insert into dense matrices of all block cluster trees
@@ -248,7 +248,7 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
     Eigen::Matrix<ScalarT, Eigen::Dynamic, Eigen::Dynamic> dense(rows(),
                                                                  cols());
     for (int i = 0; i < cols(); ++i) {
-      Eigen::VectorXd unit(cols());
+      Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> unit(cols());
       unit.setZero();
       unit(i) = 1.;
       dense.col(i) = (*this) * unit;
@@ -258,16 +258,16 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
   //////////////////////////////////////////////////////////////////////////////
   /// getter
   //////////////////////////////////////////////////////////////////////////////
-  const Eigen::SparseMatrix<double> get_transformation_matrix() const {
+  const Eigen::SparseMatrix<ptScalar> get_transformation_matrix() const {
     return transformation_matrix_;
   }
-  const Eigen::MatrixXd get_fmm_transfer_matrices() const {
+  const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> get_fmm_transfer_matrices() const {
     return fmm_transfer_matrices_;
   }
-  const std::vector<Eigen::MatrixXd> get_fmm_moment_matrix() const {
+  const std::vector<Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>> get_fmm_moment_matrix() const {
     return fmm_moment_matrix_;
   }
-  const Bembel::GenericMatrix<Bembel::BlockClusterTree<ScalarT>>&
+  const Bembel::GenericMatrix<Bembel::BlockClusterTree<ScalarT, ptScalar>>&
   get_block_cluster_tree() const {
     return block_cluster_tree_;
   }
@@ -277,14 +277,14 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
  private:
   // we declare functionality which has not been implemented (yet)
   // to be private
-  H2Matrix(const H2Matrix<ScalarT>& H);
-  H2Matrix(H2Matrix<ScalarT>&& H);
-  H2Matrix& operator=(const H2Matrix<ScalarT>& H);
-  H2Matrix& operator=(H2Matrix<ScalarT>&& H);
-  Eigen::SparseMatrix<double> transformation_matrix_;
-  Bembel::GenericMatrix<Bembel::BlockClusterTree<ScalarT>> block_cluster_tree_;
-  Eigen::MatrixXd fmm_transfer_matrices_;
-  std::vector<Eigen::MatrixXd> fmm_moment_matrix_;
+  H2Matrix(const H2Matrix<ScalarT, ptScalar>& H);
+  H2Matrix(H2Matrix<ScalarT, ptScalar>&& H);
+  H2Matrix& operator=(const H2Matrix<ScalarT, ptScalar>& H);
+  H2Matrix& operator=(H2Matrix<ScalarT, ptScalar>&& H);
+  Eigen::SparseMatrix<ptScalar> transformation_matrix_;
+  Bembel::GenericMatrix<Bembel::BlockClusterTree<ScalarT, ptScalar>> block_cluster_tree_;
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> fmm_transfer_matrices_;
+  std::vector<Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>> fmm_moment_matrix_;
 };  // namespace Eigen
 
 /**
@@ -292,13 +292,13 @@ class H2Matrix : public EigenBase<H2Matrix<ScalarT>> {
  * specialization of internal::generic_product_impl
  */
 namespace internal {
-template <typename Rhs, typename ScalarT>
-struct generic_product_impl<H2Matrix<ScalarT>, Rhs, SparseShape, DenseShape,
+template <typename Rhs, typename ScalarT, typename ptScalar>
+struct generic_product_impl<H2Matrix<ScalarT, ptScalar>, Rhs, SparseShape, DenseShape,
                             GemvProduct>  // GEMV stands for matrix-vector
-    : generic_product_impl_base<H2Matrix<ScalarT>, Rhs,
-                                generic_product_impl<H2Matrix<ScalarT>, Rhs>> {
+    : generic_product_impl_base<H2Matrix<ScalarT, ptScalar>, Rhs,
+                                generic_product_impl<H2Matrix<ScalarT, ptScalar>, Rhs>> {
   template <typename Dest>
-  static void scaleAndAddTo(Dest& dst, const H2Matrix<ScalarT>& lhs,
+  static void scaleAndAddTo(Dest& dst, const H2Matrix<ScalarT, ptScalar>& lhs,
                             const Rhs& rhs, const ScalarT& alpha) {
     // This method should implement "dst += alpha * lhs * rhs" inplace, however,
     // for iterative solvers, alpha is always equal to 1, so let's not bother
@@ -381,9 +381,9 @@ struct generic_product_impl<H2Matrix<ScalarT>, Rhs, SparseShape, DenseShape,
                 } break;
                 // deal with low-rank blocks
                 case Bembel::BlockClusterAdmissibility::LowRank: {
-                  const Bembel::ElementTreeNode* cluster1 =
+                  const Bembel::ElementTreeNode<ptScalar>* cluster1 =
                       (*leaf)->get_cluster1();
-                  const Bembel::ElementTreeNode* cluster2 =
+                  const Bembel::ElementTreeNode<ptScalar>* cluster2 =
                       (*leaf)->get_cluster2();
                   int cluster_level = cluster1->get_level();
                   int fmm_level = lhs.get_block_cluster_tree()(0, 0)

@@ -31,17 +31,17 @@ int main() {
 
   Test::TestGeometryWriter::writeScreen();
 
-  Bembel::Geometry geometry("test_Screen.dat");
+  Bembel::Geometry<double> geometry("test_Screen.dat");
   assert(geometry.get_geometry().size() == 1);
 
   for (int p = 1; p < 5; ++p)
     for (int m = 0; m < 3; ++m)
       for (int k = 1; k < std::min(2, p + 1); ++k) {
-        SuperSpace<TestOperatorDisc> superspace1(geometry, m, p);
-        SuperSpace<TestOperatorDivC> superspace2(geometry, m, p);
+        SuperSpace<TestOperatorDisc, double> superspace1(geometry, m, p);
+        SuperSpace<TestOperatorDivC, double> superspace2(geometry, m, p);
 
-        Projector<TestOperatorDisc> pro_sca(superspace1, k);
-        Projector<TestOperatorDivC> pro_vec(superspace2, k);
+        Projector<TestOperatorDisc, double> pro_sca(superspace1, k);
+        Projector<TestOperatorDivC, double> pro_vec(superspace2, k);
         Eigen::SparseMatrix<double> mat_sca = pro_sca.get_projection_matrix();
         Eigen::SparseMatrix<double> mat_vec = pro_vec.get_projection_matrix();
 
@@ -82,7 +82,7 @@ int main() {
 
         // This should default to the space that corresponds to the big space up
         // to ordering
-        Projector<TestOperatorDisc> pro_big(superspace1, 1000);
+        Projector<TestOperatorDisc, double> pro_big(superspace1, 1000);
         Eigen::SparseMatrix<double> mat_big = pro_big.get_projection_matrix();
 
         // Now, we blow up the coefficients.
@@ -91,12 +91,12 @@ int main() {
         // Here, we construct the knot vector that should represent the small
         // space
         auto small_knot_vec =
-            Bembel::Spl::MakeUniformKnotVector(p + 1, (1 << m) - 1, k);
+            Bembel::Spl::MakeUniformKnotVector<double>(p + 1, (1 << m) - 1, k);
 
         // Here, we construct the knot vector that should represent the
         // large space
         auto large_knot_vec =
-            Bembel::Spl::MakeUniformKnotVector(p + 1, (1 << m) - 1, p + 1);
+            Bembel::Spl::MakeUniformKnotVector<double>(p + 1, (1 << m) - 1, p + 1);
 
         const std::vector<double> test_points = {0.0, 0.1, 0.2, 0.3, 0.4,
                                                  0.5, 0.6, 0.7, 0.8, 1.0};

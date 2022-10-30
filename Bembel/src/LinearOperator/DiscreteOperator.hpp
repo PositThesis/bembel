@@ -15,22 +15,22 @@ namespace Bembel {
  *         compute routine of DiscreteOperator for different types of
  *         output formats
  */
-template <typename MatrixFormat, typename Derived>
+template <typename MatrixFormat, typename Derived, typename ptScalar>
 struct DiscreteOperatorComputer {};
 /**
  *  \brief Helper struct that is used in order to partially specialise the
- *         compute routine of DiscreteOperator for the Eigen::MatrixXd format
+ *         compute routine of DiscreteOperator for the Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> format
  */
-template <typename Derived, typename Scalar>
+template <typename Derived, typename Scalar, typename ptScalar>
 struct DiscreteOperatorComputer<
-    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>, Derived> {
+    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>, Derived, ptScalar> {
   DiscreteOperatorComputer(){};
   static void compute(
       Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *disc_op,
-      const Derived &lin_op, const AnsatzSpace<Derived> &ansatz_space) {
-    GaussSquare<Constants::maximum_quadrature_degree> GS;
-    const SuperSpace<Derived>& super_space = ansatz_space.get_superspace();
-    const ElementTree& element_tree = super_space.get_mesh().get_element_tree();
+      const Derived &lin_op, const AnsatzSpace<Derived, ptScalar> &ansatz_space) {
+    GaussSquare<Constants::maximum_quadrature_degree, ptScalar> GS;
+    const SuperSpace<Derived, ptScalar>& super_space = ansatz_space.get_superspace();
+    const ElementTree<ptScalar>& element_tree = super_space.get_mesh().get_element_tree();
     auto number_of_elements = element_tree.get_number_of_elements();
     const auto vector_dimension =
         getFunctionSpaceVectorDimension<LinearOperatorTraits<Derived>::Form>();
@@ -57,7 +57,7 @@ struct DiscreteOperatorComputer<
               Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> intval(
                   vector_dimension * polynomial_degree_plus_one_squared,
                   vector_dimension * polynomial_degree_plus_one_squared);
-              DuffyTrick::evaluateBilinearForm(lin_op, super_space, *element1,
+              DuffyTrick::evaluateBilinearForm<Derived, SuperSpace<Derived, ptScalar>, GaussSquare<Constants::maximum_quadrature_degree, ptScalar>, ptScalar>(lin_op, super_space, *element1,
                                                *element2, GS, ffield_qnodes,
                                                &intval);
               for (auto i = 0; i < vector_dimension; ++i)
@@ -85,13 +85,13 @@ struct DiscreteOperatorComputer<
  *  \brief Helper struct that is used in order to partially specialise the
  *         compute routine of DiscreteOperator for the Eigen::H2Matrix format
  */
-template <typename Derived>
+template <typename Derived, typename ptScalar>
 struct DiscreteOperatorComputer<
-    Eigen::H2Matrix<typename LinearOperatorTraits<Derived>::Scalar>, Derived> {
+    Eigen::H2Matrix<typename LinearOperatorTraits<Derived>::Scalar, ptScalar>, Derived, ptScalar> {
   DiscreteOperatorComputer(){};
   static void compute(
-      Eigen::H2Matrix<typename LinearOperatorTraits<Derived>::Scalar> *disc_op,
-      const Derived &lin_op, const AnsatzSpace<Derived> &ansatz_space) {
+      Eigen::H2Matrix<typename LinearOperatorTraits<Derived>::Scalar, ptScalar> *disc_op,
+      const Derived &lin_op, const AnsatzSpace<Derived, ptScalar> &ansatz_space) {
     disc_op->init_H2Matrix(lin_op, ansatz_space);
     return;
   }
@@ -100,20 +100,20 @@ struct DiscreteOperatorComputer<
  *  \brief DiscreteOperator
  *  \todo  Add a documentation
  */
-template <typename MatrixFormat, typename Derived>
+template <typename MatrixFormat, typename Derived, typename ptScalar>
 class DiscreteOperator {
  public:
   //////////////////////////////////////////////////////////////////////////////
   //    constructors
   //////////////////////////////////////////////////////////////////////////////
   DiscreteOperator() {}
-  DiscreteOperator(const AnsatzSpace<Derived> &ansatz_space) {
+  DiscreteOperator(const AnsatzSpace<Derived, ptScalar> &ansatz_space) {
     init_DiscreteOperator(ansatz_space);
   }
   //////////////////////////////////////////////////////////////////////////////
   //    init_DiscreteOperator
   //////////////////////////////////////////////////////////////////////////////
-  void init_DiscreteOperator(const AnsatzSpace<Derived> &ansatz_space) {
+  void init_DiscreteOperator(const AnsatzSpace<Derived, ptScalar> &ansatz_space) {
     ansatz_space_ = ansatz_space;
     return;
   }
@@ -121,7 +121,7 @@ class DiscreteOperator {
   //    compute
   //////////////////////////////////////////////////////////////////////////////
   inline void compute() {
-    DiscreteOperatorComputer<MatrixFormat, Derived>::compute(&disc_op_, lin_op_,
+    DiscreteOperatorComputer<MatrixFormat, Derived, ptScalar>::compute(&disc_op_, lin_op_,
                                                              ansatz_space_);
     return;
   }
@@ -137,7 +137,7 @@ class DiscreteOperator {
  private:
   Derived lin_op_;
   MatrixFormat disc_op_;
-  AnsatzSpace<Derived> ansatz_space_;
+  AnsatzSpace<Derived, ptScalar> ansatz_space_;
 };
 
 }  // namespace Bembel

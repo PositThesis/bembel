@@ -10,7 +10,7 @@ struct Bembel::LinearOperatorTraits<FakeDivergenceConformingOperator> {
 
 int main() {
   using namespace Bembel;
-  Geometry geo("sphere.dat");
+  Geometry<double> geo("sphere.dat");
 
   // The refinement level for the visualization is independent of that of the
   // simulation since one might consider to visualize a coarse discretisation on
@@ -18,17 +18,17 @@ int main() {
   const int refinement_level = 4;
 
   // The VTKwriter sets up initial geomety information.
-  VTKSurfaceExport writer(geo, refinement_level);
+  VTKSurfaceExport<double> writer(geo, refinement_level);
 
   // Now we can add user defined data. There are different options. Since you
   // might consider to visualize a solution of a computation, we will set up a
   // "fake" ansatz-space and showcase that.
-  AnsatzSpace<FakeDivergenceConformingOperator> aspace(geo, 2, 1, 1);
+  AnsatzSpace<FakeDivergenceConformingOperator, double> aspace(geo, 2, 1, 1);
   Eigen::VectorXd coefficients(aspace.get_number_of_dofs());
   for (int j = 0; j < aspace.get_number_of_dofs(); ++j) {
     coefficients(j) = (j % 10) * 0.1;
   }
-  FunctionEvaluator<FakeDivergenceConformingOperator> evaluator(aspace);
+  FunctionEvaluator<FakeDivergenceConformingOperator, double> evaluator(aspace);
   evaluator.set_function(coefficients);
 
   // One can use either one of the following formats:

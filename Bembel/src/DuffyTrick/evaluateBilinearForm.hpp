@@ -15,15 +15,15 @@ namespace DuffyTrick {
  *  \brief  This function wraps the quadrature routines for the duffy trick
  *          and returns all integrals for the given pair of elements
  */
-template <typename Derived, class T, class CubatureVector>
+template <typename Derived, class T, class CubatureVector, typename ptScalar>
 void evaluateBilinearForm(
-    const LinearOperatorBase<Derived>& linOp, const T& super_space,
-    const ElementTreeNode& e1, const ElementTreeNode& e2,
-    const CubatureVector& GS, const Eigen::MatrixXd& ffield_qnodes,
+    const LinearOperatorBase<Derived, ptScalar>& linOp, const T& super_space,
+    const ElementTreeNode<ptScalar>& e1, const ElementTreeNode<ptScalar>& e2,
+    const CubatureVector& GS, const Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>& ffield_qnodes,
     Eigen::Matrix<typename LinearOperatorTraits<Derived>::Scalar,
                   Eigen::Dynamic, Eigen::Dynamic>* intval) {
   //////////////////////////////////////////////////////////////////////////////
-  double dist = 0;
+  ptScalar dist = 0;
   int ffield_deg =
       linOp.get_FarfieldQuadratureDegree(super_space.get_polynomial_degree());
   int nfield_deg = 0;

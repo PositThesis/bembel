@@ -12,8 +12,10 @@
 namespace Bembel {
 namespace Basis {
 
-using funptr_doubleOut_doubleptrDoubleIn = double (*)(double*, double);
-using funptr_voidOut_doubleptrDoubleIn = void (*)(double*, double);
+template <typename ptScalar>
+using funptr_ptScalarOut_ptScalarptrptScalarIn = ptScalar (*)(ptScalar*, ptScalar);
+template <typename ptScalar>
+using funptr_voidOut_ptScalarptrptScalarIn = void (*)(ptScalar*, ptScalar);
 
 /**
  *  \ingroup Spline
@@ -21,44 +23,44 @@ using funptr_voidOut_doubleptrDoubleIn = void (*)(double*, double);
  *compile time instantiation of a basis-evaluation routine with a runtime p. To
  *replace the underlying basis, only these routines should be changed.
  **/
-template <int P>
+template <int P, typename ptScalar>
 class PSpecificShapeFunctionHandler {
  public:
-  inline static double evalCoef(int p, double* ar, double x) {
-    return p == P ? Bembel::Basis::EvalBernstein<double, P>(ar, x)
-                  : PSpecificShapeFunctionHandler<P - 1>::evalCoef(p, ar, x);
+  inline static ptScalar evalCoef(int p, ptScalar* ar, ptScalar x) {
+    return p == P ? Bembel::Basis::EvalBernstein<ptScalar, P>(ar, x)
+                  : PSpecificShapeFunctionHandler<P - 1, ptScalar>::evalCoef(p, ar, x);
   }
-  inline static double evalDerCoef(int p, double* ar, double x) {
-    return p == P ? Bembel::Basis::EvalBernsteinDer<double, P>(ar, x)
-                  : PSpecificShapeFunctionHandler<P - 1>::evalDerCoef(p, ar, x);
+  inline static ptScalar evalDerCoef(int p, ptScalar* ar, ptScalar x) {
+    return p == P ? Bembel::Basis::EvalBernsteinDer<ptScalar, P>(ar, x)
+                  : PSpecificShapeFunctionHandler<P - 1, ptScalar>::evalDerCoef(p, ar, x);
   }
-  inline static void evalBasis(int p, double* ar, double x) {
-    return p == P ? Bembel::Basis::EvalBernsteinBasis<double, P>(ar, x)
-                  : PSpecificShapeFunctionHandler<P - 1>::evalBasis(p, ar, x);
+  inline static void evalBasis(int p, ptScalar* ar, ptScalar x) {
+    return p == P ? Bembel::Basis::EvalBernsteinBasis<ptScalar, P>(ar, x)
+                  : PSpecificShapeFunctionHandler<P - 1, ptScalar>::evalBasis(p, ar, x);
   }
-  inline static void evalDerBasis(int p, double* ar, double x) {
+  inline static void evalDerBasis(int p, ptScalar* ar, ptScalar x) {
     return p == P
-               ? Bembel::Basis::EvalBernsteinDerBasis<double, P>(ar, x)
-               : PSpecificShapeFunctionHandler<P - 1>::evalDerBasis(p, ar, x);
+               ? Bembel::Basis::EvalBernsteinDerBasis<ptScalar, P>(ar, x)
+               : PSpecificShapeFunctionHandler<P - 1, ptScalar>::evalDerBasis(p, ar, x);
   }
-  inline static constexpr funptr_doubleOut_doubleptrDoubleIn ptrEvalCoef(
+  inline static constexpr funptr_ptScalarOut_ptScalarptrptScalarIn<ptScalar> ptrEvalCoef(
       int p) {
-    return p == P ? &Bembel::Basis::EvalBernstein<double, P>
-                  : PSpecificShapeFunctionHandler<P - 1>::ptrEvalCoef(p);
+    return p == P ? &Bembel::Basis::EvalBernstein<ptScalar, P>
+                  : PSpecificShapeFunctionHandler<P - 1, ptScalar>::ptrEvalCoef(p);
   }
-  inline static constexpr funptr_doubleOut_doubleptrDoubleIn ptrEvalDerCoef(
+  inline static constexpr funptr_ptScalarOut_ptScalarptrptScalarIn<ptScalar> ptrEvalDerCoef(
       int p) {
-    return p == P ? &Bembel::Basis::EvalBernsteinDer<double, P>
-                  : PSpecificShapeFunctionHandler<P - 1>::ptrEvalDerCoef(p);
+    return p == P ? &Bembel::Basis::EvalBernsteinDer<ptScalar, P>
+                  : PSpecificShapeFunctionHandler<P - 1, ptScalar>::ptrEvalDerCoef(p);
   }
-  inline static constexpr funptr_voidOut_doubleptrDoubleIn ptrEvalBasis(int p) {
-    return p == P ? &Bembel::Basis::EvalBernsteinBasis<double, P>
-                  : PSpecificShapeFunctionHandler<P - 1>::ptrEvalBasis(p);
+  inline static constexpr funptr_voidOut_ptScalarptrptScalarIn<ptScalar> ptrEvalBasis(int p) {
+    return p == P ? &Bembel::Basis::EvalBernsteinBasis<ptScalar, P>
+                  : PSpecificShapeFunctionHandler<P - 1, ptScalar>::ptrEvalBasis(p);
   }
-  inline static constexpr funptr_voidOut_doubleptrDoubleIn ptrEvalDerBasis(
+  inline static constexpr funptr_voidOut_ptScalarptrptScalarIn<ptScalar> ptrEvalDerBasis(
       int p) {
-    return p == P ? &Bembel::Basis::EvalBernsteinDerBasis<double, P>
-                  : PSpecificShapeFunctionHandler<P - 1>::ptrEvalDerBasis(p);
+    return p == P ? &Bembel::Basis::EvalBernsteinDerBasis<ptScalar, P>
+                  : PSpecificShapeFunctionHandler<P - 1, ptScalar>::ptrEvalDerBasis(p);
   }
   inline static constexpr bool checkP(int p) {
     static_assert(P > 0, "Polynomial degree must be larger than zero");
@@ -66,40 +68,41 @@ class PSpecificShapeFunctionHandler {
   }
 };
 
-template <>
-class PSpecificShapeFunctionHandler<0> {
+template <typename ptScalar>
+class PSpecificShapeFunctionHandler<0, ptScalar> {
  public:
-  inline static double evalCoef(int p, double* ar, double x) {
-    return Bembel::Basis::EvalBernstein<double, 0>(ar, x);
+  inline static ptScalar evalCoef(int p, ptScalar* ar, ptScalar x) {
+    return Bembel::Basis::EvalBernstein<ptScalar, 0>(ar, x);
   }
-  inline static double evalDerCoef(int p, double* ar, double x) {
-    return Bembel::Basis::EvalBernsteinDer<double, 0>(ar, x);
+  inline static ptScalar evalDerCoef(int p, ptScalar* ar, ptScalar x) {
+    return Bembel::Basis::EvalBernsteinDer<ptScalar, 0>(ar, x);
   }
-  inline static void evalBasis(int p, double* ar, double x) {
-    return Bembel::Basis::EvalBernsteinBasis<double, 0>(ar, x);
+  inline static void evalBasis(int p, ptScalar* ar, ptScalar x) {
+    return Bembel::Basis::EvalBernsteinBasis<ptScalar, 0>(ar, x);
   }
-  inline static void evalDerBasis(int p, double* ar, double x) {
-    return Bembel::Basis::EvalBernsteinDerBasis<double, 0>(ar, x);
+  inline static void evalDerBasis(int p, ptScalar* ar, ptScalar x) {
+    return Bembel::Basis::EvalBernsteinDerBasis<ptScalar, 0>(ar, x);
   }
-  inline static constexpr funptr_doubleOut_doubleptrDoubleIn ptrEvalCoef(
+  inline static constexpr funptr_ptScalarOut_ptScalarptrptScalarIn<ptScalar> ptrEvalCoef(
       int p) {
-    return &Bembel::Basis::EvalBernstein<double, 0>;
+    return &Bembel::Basis::EvalBernstein<ptScalar, 0>;
   }
-  inline static constexpr funptr_doubleOut_doubleptrDoubleIn ptrEvalDerCoef(
+  inline static constexpr funptr_ptScalarOut_ptScalarptrptScalarIn<ptScalar> ptrEvalDerCoef(
       int p) {
-    return &Bembel::Basis::EvalBernsteinDer<double, 0>;
+    return &Bembel::Basis::EvalBernsteinDer<ptScalar, 0>;
   }
-  inline static constexpr funptr_voidOut_doubleptrDoubleIn ptrEvalBasis(int p) {
-    return &Bembel::Basis::EvalBernsteinBasis<double, 0>;
+  inline static constexpr funptr_voidOut_ptScalarptrptScalarIn<ptScalar> ptrEvalBasis(int p) {
+    return &Bembel::Basis::EvalBernsteinBasis<ptScalar, 0>;
   }
-  inline static constexpr funptr_voidOut_doubleptrDoubleIn ptrEvalDerBasis(
+  inline static constexpr funptr_voidOut_ptScalarptrptScalarIn<ptScalar> ptrEvalDerBasis(
       int p) {
-    return &Bembel::Basis::EvalBernsteinDerBasis<double, 0>;
+    return &Bembel::Basis::EvalBernsteinDerBasis<ptScalar, 0>;
   }
   inline static constexpr bool checkP(int p) { return Constants::MaxP >= 0; }
 };
 
-using ShapeFunctionHandler = PSpecificShapeFunctionHandler<Constants::MaxP>;
+template <typename ptScalar>
+using ShapeFunctionHandler = PSpecificShapeFunctionHandler<Constants::MaxP, ptScalar>;
 
 }  // namespace Basis
 }  // namespace Bembel

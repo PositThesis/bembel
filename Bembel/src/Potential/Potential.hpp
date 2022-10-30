@@ -30,28 +30,28 @@ template <typename S, typename T>
 struct PotentialReturnScalar {
   enum { RETURN_TYPE_ONLY_SPECIFIED_FOR_DOUBLE_OR_COMPLEX_DOUBLE = 1 };
 };
-template <>
-struct PotentialReturnScalar<double, double> {
-  typedef double Scalar;
+template <typename ptScalar>
+struct PotentialReturnScalar<ptScalar, ptScalar> {
+  typedef ptScalar Scalar;
 };
-template <>
-struct PotentialReturnScalar<std::complex<double>, double> {
-  typedef std::complex<double> Scalar;
+template <typename ptScalar>
+struct PotentialReturnScalar<std::complex<ptScalar>, ptScalar> {
+  typedef std::complex<ptScalar> Scalar;
 };
-template <>
-struct PotentialReturnScalar<double, std::complex<double>> {
-  typedef std::complex<double> Scalar;
+template <typename ptScalar>
+struct PotentialReturnScalar<ptScalar, std::complex<ptScalar>> {
+  typedef std::complex<ptScalar> Scalar;
 };
-template <>
-struct PotentialReturnScalar<std::complex<double>, std::complex<double>> {
-  typedef std::complex<double> Scalar;
+template <typename ptScalar>
+struct PotentialReturnScalar<std::complex<ptScalar>, std::complex<ptScalar>> {
+  typedef std::complex<ptScalar> Scalar;
 };
 
 /**
  *    \brief functional base class. this serves as a common interface for
  *           existing functionals
  **/
-template <typename Derived, typename LinOp>
+template <typename Derived, typename LinOp, typename ptScalar>
 struct PotentialBase {
   // Constructors
   PotentialBase(){};
@@ -68,12 +68,12 @@ struct PotentialBase {
                     typename PotentialTraits<Derived>::Scalar>::Scalar,
                 1, PotentialTraits<Derived>::OutputSpaceDimension>
   evaluateIntegrand(
-      const AnsatzSpace<LinOp> &ansatz_space,
+      const AnsatzSpace<LinOp, ptScalar> &ansatz_space,
       const Eigen::Matrix<
           typename LinearOperatorTraits<LinOp>::Scalar, Eigen::Dynamic,
           getFunctionSpaceVectorDimension<LinearOperatorTraits<LinOp>::Form>()>
           &coeff,
-      const Eigen::VectorXd &point, const SurfacePoint &p) const {
+      const Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> &point, const SurfacePoint<ptScalar> &p) const {
     return static_cast<const Derived *>(this)->evaluatePotential_impl(
         ansatz_space, coeff, point, p);
   }

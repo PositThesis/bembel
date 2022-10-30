@@ -10,44 +10,44 @@
 
 namespace Bembel {
 
-template <typename Scalar, unsigned int DF, typename LinOp>
+template <typename Scalar, unsigned int DF, typename LinOp, typename ptScalar>
 struct FunctionEvaluatorEval {};
 
 // continuous
-template <typename Scalar, typename LinOp>
-struct FunctionEvaluatorEval<Scalar, DifferentialForm::Continuous, LinOp> {
+template <typename Scalar, typename LinOp, typename ptScalar>
+struct FunctionEvaluatorEval<Scalar, DifferentialForm::Continuous, LinOp, ptScalar> {
   Eigen::Matrix<Scalar,
                 getFunctionSpaceOutputDimension<DifferentialForm::Continuous>(),
                 1>
-  eval(const SuperSpace<LinOp> &super_space,
+  eval(const SuperSpace<LinOp, ptScalar> &super_space,
        const int polynomial_degree_plus_one_squared,
-       const ElementTreeNode &element, const SurfacePoint &p,
+       const ElementTreeNode<ptScalar> &element, const SurfacePoint<ptScalar> &p,
        const Eigen::Matrix<
            Scalar, Eigen::Dynamic,
            getFunctionSpaceVectorDimension<DifferentialForm::Continuous>()>
            &coeff) const {
-    auto s = p.segment<2>(0);
+    Eigen::Matrix<ptScalar, 2, 1> s = p.segment(0, 2);
     return coeff.transpose() * super_space.basis(s) / element.get_h();
   };
 };
 
 // div-conforming
-template <typename Scalar, typename LinOp>
-struct FunctionEvaluatorEval<Scalar, DifferentialForm::DivConforming, LinOp> {
+template <typename Scalar, typename LinOp, typename ptScalar>
+struct FunctionEvaluatorEval<Scalar, DifferentialForm::DivConforming, LinOp, ptScalar> {
   Eigen::Matrix<
       Scalar,
       getFunctionSpaceOutputDimension<DifferentialForm::DivConforming>(), 1>
-  eval(const SuperSpace<LinOp> &super_space,
+  eval(const SuperSpace<LinOp, ptScalar> &super_space,
        const int polynomial_degree_plus_one_squared,
-       const ElementTreeNode &element, const SurfacePoint &p,
+       const ElementTreeNode<ptScalar> &element, const SurfacePoint<ptScalar> &p,
        const Eigen::Matrix<
            Scalar, Eigen::Dynamic,
            getFunctionSpaceVectorDimension<DifferentialForm::DivConforming>()>
            &coeff) const {
-    auto s = p.segment<2>(0);
+    Eigen::Matrix<ptScalar, 2, 1> s = p.segment(0, 2);
     auto h = element.get_h();
-    auto x_f_dx = p.segment<3>(6);
-    auto x_f_dy = p.segment<3>(9);
+    Eigen::Matrix<ptScalar, 3, 1> x_f_dx = p.segment(6, 3);
+    Eigen::Matrix<ptScalar, 3, 1> x_f_dy = p.segment(9, 3);
     Eigen::Matrix<typename LinearOperatorTraits<LinOp>::Scalar, Eigen::Dynamic,
                   1>
         tangential_coefficients = coeff.transpose() * super_space.basis(s);
@@ -57,14 +57,14 @@ struct FunctionEvaluatorEval<Scalar, DifferentialForm::DivConforming, LinOp> {
   };
 
   Scalar evalDiv(
-      const SuperSpace<LinOp> &super_space,
+      const SuperSpace<LinOp, ptScalar> &super_space,
       const int polynomial_degree_plus_one_squared,
-      const ElementTreeNode &element, const SurfacePoint &p,
+      const ElementTreeNode<ptScalar> &element, const SurfacePoint<ptScalar> &p,
       const Eigen::Matrix<
           Scalar, Eigen::Dynamic,
           getFunctionSpaceVectorDimension<DifferentialForm::DivConforming>()>
           &coeff) const {
-    auto s = p.segment<2>(0);
+    Eigen::Matrix<ptScalar, 2, 1> s = p.segment(0, 2);
     auto h = element.get_h();
     Eigen::Matrix<typename LinearOperatorTraits<LinOp>::Scalar, Eigen::Dynamic,
                   1>
@@ -78,19 +78,19 @@ struct FunctionEvaluatorEval<Scalar, DifferentialForm::DivConforming, LinOp> {
 };
 
 // discontinuous
-template <typename Scalar, typename LinOp>
-struct FunctionEvaluatorEval<Scalar, DifferentialForm::Discontinuous, LinOp> {
+template <typename Scalar, typename LinOp, typename ptScalar>
+struct FunctionEvaluatorEval<Scalar, DifferentialForm::Discontinuous, LinOp, ptScalar> {
   Eigen::Matrix<
       Scalar,
       getFunctionSpaceOutputDimension<DifferentialForm::Discontinuous>(), 1>
-  eval(const SuperSpace<LinOp> &super_space,
+  eval(const SuperSpace<LinOp, ptScalar> &super_space,
        const int polynomial_degree_plus_one_squared,
-       const ElementTreeNode &element, const SurfacePoint &p,
+       const ElementTreeNode<ptScalar> &element, const SurfacePoint<ptScalar> &p,
        const Eigen::Matrix<
            Scalar, Eigen::Dynamic,
            getFunctionSpaceVectorDimension<DifferentialForm::Discontinuous>()>
            &coeff) const {
-    auto s = p.segment<2>(0);
+    Eigen::Matrix<ptScalar, 2, 1> s = p.segment(0, 2);
     return coeff.transpose() * super_space.basis(s) / element.get_h();
   };
 };

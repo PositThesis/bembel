@@ -17,7 +17,7 @@ int main() {
 
   Test::TestGeometryWriter::writeScreen();
 
-  Bembel::Geometry geometry("test_Screen.dat");
+  Bembel::Geometry<double> geometry("test_Screen.dat");
   assert(geometry.get_geometry().size() == 1);
 
   for (auto x : Test::Constants::eq_points) {

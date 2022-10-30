@@ -21,13 +21,13 @@ namespace Bembel {
  *         had to be used in the template specializations. However, this
  *         is taken care of by the quadrature struct.
  **/
-template <unsigned int Order>
+template <unsigned int Order, typename ptScalar>
 struct GaussLegendreRule {
   GaussLegendreRule() {
-    Eigen::MatrixXd A(Order, Order);
+    Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> A(Order, Order);
     A.setZero();
     for (auto i = 1; i < Order; ++i) A(i, i - 1) = i / (sqrt(4. * i * i - 1));
-    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es;
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>> es;
     es.compute(A);
     xi_.resize(Order);
     w_.resize(Order);
@@ -36,40 +36,40 @@ struct GaussLegendreRule {
       w_[i] = es.eigenvectors()(0, i) * es.eigenvectors()(0, i);
     }
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<0> {
+template <typename ptScalar>
+struct GaussLegendreRule<0, ptScalar> {
   GaussLegendreRule() {
     assert(false && "Order of GaussLegendre Quadrature has to be at least 1");
   }
 };
 
-template <>
-struct GaussLegendreRule<1> {
+template <typename ptScalar>
+struct GaussLegendreRule<1, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.5};
     w_ = {1.0};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<2> {
+template <typename ptScalar>
+struct GaussLegendreRule<2, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.2113248654051871177454256097490212721762,
            0.7886751345948128822545743902509787278238};
     w_ = {0.5, 0.5};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<3> {
+template <typename ptScalar>
+struct GaussLegendreRule<3, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.1127016653792583114820734600217600389167, 0.5,
            0.8872983346207416885179265399782399610833};
@@ -78,12 +78,12 @@ struct GaussLegendreRule<3> {
           .4444444444444444444444444444444444444444,
           .2777777777777777777777777777777777777778};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<4> {
+template <typename ptScalar>
+struct GaussLegendreRule<4, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.06943184420297371238802675555359524745214,
            0.3300094782075718675986671204483776563997,
@@ -95,12 +95,12 @@ struct GaussLegendreRule<4> {
           .3260725774312730713134680253890002963823,
           .1739274225687269286865319746109997036177};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<5> {
+template <typename ptScalar>
+struct GaussLegendreRule<5, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.04691007703066800360118656085030351743717,
            0.2307653449471584544818427896498955975164, 0.5,
@@ -113,12 +113,12 @@ struct GaussLegendreRule<5> {
           .2393143352496832340206457574178190964561,
           .1184634425280945437571320203599586813216};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<6> {
+template <typename ptScalar>
+struct GaussLegendreRule<6, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.03376524289842398609384922275300269543262,
            0.1693953067668677431693002024900473264968,
@@ -134,12 +134,12 @@ struct GaussLegendreRule<6> {
           .1803807865240693037849167569188580558308,
           .08566224618958517252014807108636644676341};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<7> {
+template <typename ptScalar>
+struct GaussLegendreRule<7, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.02544604382862073773690515797607436879961,
            0.1292344072003027800680676133596057964629,
@@ -157,12 +157,12 @@ struct GaussLegendreRule<7> {
           0.1398526957446383339507338857118897912435,
           0.06474248308443484663530571633954100916429};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<8> {
+template <typename ptScalar>
+struct GaussLegendreRule<8, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.01985507175123188415821956571526350478588,
            0.1016667612931866302042230317620847815814,
@@ -182,12 +182,12 @@ struct GaussLegendreRule<8> {
           0.1111905172266872352721779972131204422151,
           0.0506142681451881295762656771549810950577};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<9> {
+template <typename ptScalar>
+struct GaussLegendreRule<9, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.0159198802461869550822118985481635649753,
            0.08198444633668210285028510596513256172795,
@@ -209,11 +209,11 @@ struct GaussLegendreRule<9> {
           .09032408034742870202923601562145640475717,
           .04063719418078720598594607905526182533783};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
-template <>
-struct GaussLegendreRule<10> {
+template <typename ptScalar>
+struct GaussLegendreRule<10, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.01304673574141413996101799395777397328587,
            0.06746831665550774463395165578825347573623,
@@ -237,12 +237,12 @@ struct GaussLegendreRule<10> {
           0.07472567457529029657288816982884866620128,
           0.03333567215434406879678440494666589642893};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<11> {
+template <typename ptScalar>
+struct GaussLegendreRule<11, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.01088567092697150359803099943857130461429,
            0.05646870011595235046242111534803636668416,
@@ -268,12 +268,12 @@ struct GaussLegendreRule<11> {
           0.06279018473245231231734714961197005009881,
           0.02783428355808683324137686022127428936426};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<12> {
+template <typename ptScalar>
+struct GaussLegendreRule<12, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.009219682876640374654725454925359588519922,
            0.0479413718147625716607670669404519037312,
@@ -301,12 +301,12 @@ struct GaussLegendreRule<12> {
           0.05346966299765921548012735909699811210729,
           0.02358766819325591359730798074250853015851};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<13> {
+template <typename ptScalar>
+struct GaussLegendreRule<13, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.007908472640705925263585275596445194467505,
            0.04120080038851101739672608174964024380476,
@@ -336,12 +336,12 @@ struct GaussLegendreRule<13> {
           0.04606074991886422395721088797689856046184,
           0.02024200238265793976001079610049303002099};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<14> {
+template <typename ptScalar>
+struct GaussLegendreRule<14, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.006858095651593830579201366647973599161954,
            0.03578255816821324133180443031106286776148,
@@ -373,11 +373,11 @@ struct GaussLegendreRule<14> {
           0.04007904357988010490281663853142715479185,
           0.01755973016587593151591643806909589030985};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
-template <>
-struct GaussLegendreRule<15> {
+template <typename ptScalar>
+struct GaussLegendreRule<15, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.006003740989757285755217140706693709426514,
            0.031363303799647047846120526144895264378,
@@ -411,12 +411,12 @@ struct GaussLegendreRule<15> {
           0.03518302374405406235463370822533366923335,
           0.01537662099805863417731419678860220886087};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<16> {
+template <typename ptScalar>
+struct GaussLegendreRule<16, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.005299532504175033701922913274833686286863,
            0.02771248846338371196100579223269582745443,
@@ -452,11 +452,11 @@ struct GaussLegendreRule<16> {
           0.03112676196932394643142191849718884713749,
           0.01357622970587704742589028622800905175613};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
-template <>
-struct GaussLegendreRule<17> {
+template <typename ptScalar>
+struct GaussLegendreRule<17, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.004712262342791332162282990029667361746105,
            0.02466223911561611938864152105209848927831,
@@ -494,12 +494,12 @@ struct GaussLegendreRule<17> {
           0.02772976468699360056472008267912233025642,
           0.01207415143427396598005501314378266234585};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<18> {
+template <typename ptScalar>
+struct GaussLegendreRule<18, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.004217415789534526634991997646924614873711,
            0.02208802521430112240940205353511184501358,
@@ -539,12 +539,12 @@ struct GaussLegendreRule<18> {
           0.02485727444748489822666747310131932084043,
           0.01080800676324165515667135513322623469384};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<19> {
+template <typename ptScalar>
+struct GaussLegendreRule<19, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.003796578078207798405491164873369753205342,
            0.01989592393258498457361057965617423669245,
@@ -586,12 +586,12 @@ struct GaussLegendreRule<19> {
           0.02240711338284980016641907870099710597588,
           0.009730894114863238518156020732219217876453};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
-template <>
-struct GaussLegendreRule<20> {
+template <typename ptScalar>
+struct GaussLegendreRule<20, ptScalar> {
   GaussLegendreRule() {
     xi_ = {0.003435700407452537606938805764339860888676,
            0.01801403636104310436616693440136138904397,
@@ -635,8 +635,8 @@ struct GaussLegendreRule<20> {
           0.02030071490019347066551997613746605493955,
           0.008807003569576059155930981175926408181072};
   }
-  std::vector<double> xi_;
-  std::vector<double> w_;
+  std::vector<ptScalar> xi_;
+  std::vector<ptScalar> w_;
 };
 
 }  // namespace Bembel

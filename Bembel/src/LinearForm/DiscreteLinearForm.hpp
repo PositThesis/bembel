@@ -14,20 +14,20 @@ namespace Bembel {
  *  \brief This class, given a LinearForm with defined traits, takes care of the
  * assembly of the right hand side.
  */
-template <typename Derived, typename LinOp>
+template <typename Derived, typename LinOp, typename ptScalar>
 class DiscreteLinearForm {
  public:
   //////////////////////////////////////////////////////////////////////////////
   //    constructors
   //////////////////////////////////////////////////////////////////////////////
   DiscreteLinearForm() {}
-  DiscreteLinearForm(const AnsatzSpace<LinOp> &ansatz_space) {
+  DiscreteLinearForm(const AnsatzSpace<LinOp, ptScalar> &ansatz_space) {
     init_DiscreteLinearForm(ansatz_space);
   }
   //////////////////////////////////////////////////////////////////////////////
   //    init_DiscreteLinearForm
   //////////////////////////////////////////////////////////////////////////////
-  void init_DiscreteLinearForm(const AnsatzSpace<LinOp> &ansatz_space) {
+  void init_DiscreteLinearForm(const AnsatzSpace<LinOp, ptScalar> &ansatz_space) {
     ansatz_space_ = ansatz_space;
     deg_ = ansatz_space_.get_polynomial_degree() + 1;
     return;
@@ -39,11 +39,11 @@ class DiscreteLinearForm {
    *    \todo Add inline commentary
    **/
   void compute() {
-    GaussSquare<Constants::maximum_quadrature_degree> GS;
+    GaussSquare<Constants::maximum_quadrature_degree, ptScalar> GS;
     auto Q = GS[deg_];
-    SurfacePoint qp;
+    SurfacePoint<ptScalar> qp;
     auto super_space = ansatz_space_.get_superspace();
-    const ElementTree &element_tree = super_space.get_mesh().get_element_tree();
+    const ElementTree<ptScalar> &element_tree = super_space.get_mesh().get_element_tree();
     auto number_of_elements = element_tree.get_number_of_elements();
     auto polynomial_degree = super_space.get_polynomial_degree();
     auto polynomial_degree_plus_one_squared =
@@ -99,7 +99,7 @@ class DiscreteLinearForm {
   Derived lf_;
   Eigen::Matrix<typename LinearFormTraits<Derived>::Scalar, Eigen::Dynamic, 1>
       disc_lf_;
-  AnsatzSpace<LinOp> ansatz_space_;
+  AnsatzSpace<LinOp, ptScalar> ansatz_space_;
 };
 
 }  // namespace Bembel

@@ -69,13 +69,13 @@ int print2m(const std::string &fileName, const std::string &varName,
   return 0;
 }
 
-template <typename Scalar>
+template <typename Scalar, typename ptScalar>
 int print2m(const std::string &fileName, const std::string &varName,
             const Eigen::SparseMatrix<Scalar> &var,
             const std::string &writeMode) {
-  Eigen::VectorXd rowInd(var.nonZeros());
-  Eigen::VectorXd colInd(var.nonZeros());
-  Eigen::VectorXd value(var.nonZeros());
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> rowInd(var.nonZeros());
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> colInd(var.nonZeros());
+  Eigen::Matrix<ptScalar, Eigen::Dynamic, 1> value(var.nonZeros());
   unsigned int j = 0;
   for (auto i = 0; i < var.outerSize(); i++)
     for (typename Eigen::SparseMatrix<Scalar>::InnerIterator it(var, i); it;

@@ -32,7 +32,7 @@ int main() {
 
   // Load geometry from file "sphere.dat", which must be placed in the same
   // directory as the executable
-  Geometry geometry("sphere.dat");
+  Geometry<double> geometry("sphere.dat");
 
   // Define evaluation points for scattered field, sphere of radius 2, 10*10
   // points.
@@ -58,33 +58,33 @@ int main() {
       std::cout << "Degree " << polynomial_degree << " Level "
                 << refinement_level;
       // Build ansatz space
-      AnsatzSpace<HelmholtzSingleLayerOperator> ansatz_space(
+      AnsatzSpace<HelmholtzSingleLayerOperator<double>, double> ansatz_space(
           geometry, refinement_level, polynomial_degree);
 
       // Set up load vector
-      DiscreteLinearForm<DirichletTrace<std::complex<double>>,
-                         HelmholtzSingleLayerOperator>
+      DiscreteLinearForm<DirichletTrace<std::complex<double>, double>,
+                         HelmholtzSingleLayerOperator<double>, double>
           disc_lf(ansatz_space);
       disc_lf.get_linear_form().set_function(fun);
       disc_lf.compute();
 
       // Set up and compute discrete operator
-      DiscreteOperator<H2Matrix<std::complex<double>>,
-                       HelmholtzSingleLayerOperator>
+      DiscreteOperator<H2Matrix<std::complex<double>, double>,
+                       HelmholtzSingleLayerOperator<double>, double>
           disc_op(ansatz_space);
       disc_op.get_linear_operator().set_wavenumber(wavenumber);
       disc_op.compute();
 
       // solve system
-      GMRES<H2Matrix<std::complex<double>>, IdentityPreconditioner> gmres;
+      GMRES<H2Matrix<std::complex<double>, double>, IdentityPreconditioner> gmres;
       gmres.compute(disc_op.get_discrete_operator());
       gmres.set_restart(1e5);
       auto rho = gmres.solve(disc_lf.get_discrete_linear_form());
 
       // evaluate potential
       DiscretePotential<
-          HelmholtzSingleLayerPotential<HelmholtzSingleLayerOperator>,
-          HelmholtzSingleLayerOperator>
+          HelmholtzSingleLayerPotential<HelmholtzSingleLayerOperator<double>, double>,
+          HelmholtzSingleLayerOperator<double>, double>
           disc_pot(ansatz_space);
       disc_pot.get_potential().set_wavenumber(wavenumber);
       disc_pot.set_cauchy_data(rho);

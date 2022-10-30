@@ -15,16 +15,16 @@
 int main() {
   int refinement_level = 4;
   int polynomial_degree = 0;
-  Bembel::Geometry geometry("sphere.dat");
+  Bembel::Geometry<double> geometry("sphere.dat");
   std::cout << "The geometry has " << geometry.get_number_of_patches()
             << " patches." << std::endl;
   std::cout << std::string(60, '-') << std::endl;
 
-  Bembel::AnsatzSpace<Bembel::DummyOperator>(geometry, refinement_level,
+  Bembel::AnsatzSpace<Bembel::DummyOperator<double>, double>(geometry, refinement_level,
                                              polynomial_degree);
   std::cout
       << "The operator order is "
-      << Bembel::LinearOperatorTraits<Bembel::DummyOperator>::OperatorOrder
+      << Bembel::LinearOperatorTraits<Bembel::DummyOperator<double>>::OperatorOrder
       << "." << std::endl;
   return 0;
 }

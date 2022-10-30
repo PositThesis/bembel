@@ -10,8 +10,8 @@
 #define BEMBEL_QUADRATURE_GAUSSSQUARE_H_
 namespace Bembel {
 
-template <unsigned int Order>
-using GaussSquare = TensorProductQuadratureVector<GaussLegendreRule, Order>;
+template <unsigned int Order, typename ptScalar>
+using GaussSquare = TensorProductQuadratureVector<GaussLegendreRule, Order, ptScalar>;
 
 }
 #endif

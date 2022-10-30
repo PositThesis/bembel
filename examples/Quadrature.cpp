@@ -33,7 +33,7 @@ int main() {
   Eigen::VectorXd xi;
   Eigen::VectorXd w;
 
-  Bembel::GaussLegendre<max_order> GS;
+  Bembel::GaussLegendre<max_order, double> GS;
   // compare GaussLegendre rules versus nodes and weights obtained from
   // solving the eigenvalue problem
   {
@@ -71,7 +71,7 @@ int main() {
       double exact_integral = (std::cos(BEMBEL_PI) - std::cos(0)) / BEMBEL_PI;
       exact_integral *= exact_integral;
 
-      Bembel::GaussSquare<max_tp_order> GS;
+      Bembel::GaussSquare<max_tp_order, double> GS;
       for (auto j = 0; j < max_tp_order; ++j) {
         double quadrature_val = 0;
         for (auto i = 0; i < GS[j].xi_.cols(); ++i)

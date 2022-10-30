@@ -18,9 +18,10 @@ namespace Bembel {
  * \param name path/filename pointing to the geometry file
  * \return std::vector of NURBS::Patch describing geometry
  */
-inline std::vector<Patch> LoadGeometryFile(
+template <typename ptScalar>
+inline std::vector<Patch<ptScalar>> LoadGeometryFile(
     const std::string &file_name) noexcept {
-  std::vector<Bembel::Patch> out;
+  std::vector<Bembel::Patch<ptScalar>> out;
   std::stringstream iss;
   std::string word;
   std::string row;
@@ -44,11 +45,11 @@ inline std::vector<Patch> LoadGeometryFile(
   }
   // main loop - patches
   for (int patchNr = 1; patchNr <= infoInt[2]; patchNr++) {
-    Bembel::Patch tempPatch;
-    std::vector<double> tempknt1;
-    std::vector<double> tempknt2;
+    Bembel::Patch<ptScalar> tempPatch;
+    std::vector<ptScalar> tempknt1;
+    std::vector<ptScalar> tempknt2;
     std::vector<int> info;  // p and ncp / 0,1-p  2,3-ncp
-    std::vector<Eigen::MatrixXd> tmp;
+    std::vector<Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>> tmp;
 
     getline(file, row);  // file_name
 
@@ -94,8 +95,8 @@ inline std::vector<Patch> LoadGeometryFile(
     int N = info[2];
     int M = info[3];
     for (int k = 0; k < 4; k++) {
-      Eigen::Matrix<double, -1, -1> tempMatrix(
-          M, N);  // == Eigen::MatrixXd tempMatrix(M,N);
+      Eigen::Matrix<ptScalar, -1, -1> tempMatrix(
+          M, N);  // == Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic> tempMatrix(M,N);
       getline(file, row);
       iss.str(row);
       for (int i = 0; i < M; i++)
@@ -147,10 +148,11 @@ inline void MakeFile(const std::string &file_name,
  * \param name filename
  * \param patchnumberCurr current patch number
  **/
+template <typename ptScalar>
 void WritePatch(const std::string &file_name, int current_patch_number,
-                const std::vector<Eigen::MatrixXd> &xyzw,
-                const std::vector<double> &knt1,
-                const std::vector<double> &knt2) noexcept {
+                const std::vector<Eigen::Matrix<ptScalar, Eigen::Dynamic, Eigen::Dynamic>> &xyzw,
+                const std::vector<ptScalar> &knt1,
+                const std::vector<ptScalar> &knt2) noexcept {
   std::ofstream file(file_name, std::ios::app);
   int N = xyzw[0].cols();  // ncp
   int M = xyzw[0].rows();  // ncp

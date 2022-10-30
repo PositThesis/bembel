@@ -32,7 +32,7 @@ int main() {
 
   // Load geometry from file "sphere.dat", which must be placed in the same
   // directory as the executable
-  Geometry geometry("sphere.dat");
+  Geometry<double> geometry("sphere.dat");
 
   // Define evaluation points for potential field, a tensor product grid of
   // 7*7*7 points in [-.1,.1]^3
@@ -58,29 +58,29 @@ int main() {
       std::cout << "Degree " << polynomial_degree << " Level "
                 << refinement_level;
       // Build ansatz space
-      AnsatzSpace<LaplaceSingleLayerOperator> ansatz_space(
+      AnsatzSpace<LaplaceSingleLayerOperator<double>, double> ansatz_space(
           geometry, refinement_level, polynomial_degree);
 
       // Set up load vector
-      DiscreteLinearForm<DirichletTrace<double>, LaplaceSingleLayerOperator>
+      DiscreteLinearForm<DirichletTrace<double, double>, LaplaceSingleLayerOperator<double>, double>
           disc_lf(ansatz_space);
       disc_lf.get_linear_form().set_function(fun);
       disc_lf.compute();
 
       // Set up and compute discrete operator
-      DiscreteOperator<H2Matrix<double>, LaplaceSingleLayerOperator> disc_op(
+      DiscreteOperator<H2Matrix<double, double>, LaplaceSingleLayerOperator<double>, double> disc_op(
           ansatz_space);
       disc_op.compute();
 
       // solve system
-      ConjugateGradient<H2Matrix<double>, Lower | Upper, IdentityPreconditioner>
+      ConjugateGradient<H2Matrix<double, double>, Lower | Upper, IdentityPreconditioner>
           cg;
       cg.compute(disc_op.get_discrete_operator());
       auto rho = cg.solve(disc_lf.get_discrete_linear_form());
 
       // evaluate potential
-      DiscretePotential<LaplaceSingleLayerPotential<LaplaceSingleLayerOperator>,
-                        LaplaceSingleLayerOperator>
+      DiscretePotential<LaplaceSingleLayerPotential<LaplaceSingleLayerOperator<double>, double>,
+                        LaplaceSingleLayerOperator<double>, double>
           disc_pot(ansatz_space);
       disc_pot.set_cauchy_data(rho);
       auto pot = disc_pot.evaluate(gridpoints);
